@@ -83,6 +83,8 @@ The CLI's only artwork is 📤/✅ in terminal output.
 
 # Changelog
 
+- v0.2.1 2026-10-06 Forest-green native title bars across app windows.
+
 - v0.2.0 2026-10-06 Self-contained native Mac app, browser sign-in/preferences, JSON desktop bridge, shared library-only default fix, consolidated planning/art and release builds.
 
 - v0.1.1 2026-10-06 Native-PDF fix: dropped stkclient's invented `outputFormat=MOBI`/`deliveryMechanism` (backend converted PDFs), send `forceConvert:false` like the official app. Added `--convert` opt-in.

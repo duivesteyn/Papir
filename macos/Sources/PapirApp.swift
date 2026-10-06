@@ -283,7 +283,9 @@ struct PapirWindowStyle: NSViewRepresentable {
     }
     private func style(_ window: NSWindow?) {
         window?.backgroundColor = NSColor(red: 18.0 / 255, green: 51.0 / 255, blue: 37.0 / 255, alpha: 1)
+        window?.styleMask.insert(.fullSizeContentView)
         window?.titlebarAppearsTransparent = true
+        window?.toolbar = nil
         window?.appearance = NSAppearance(named: .darkAqua)
     }
 }
@@ -492,6 +494,11 @@ struct AboutCommands: Commands {
         Window("About Papir", id: "about") { AboutView() }
             .windowResizability(.contentSize)
 
-        Settings { PreferencesView().environmentObject(sender) }
+        Settings {
+            PreferencesView().environmentObject(sender)
+                .background(PapirTheme.green.ignoresSafeArea())
+                .background(PapirWindowStyle())
+                .preferredColorScheme(.dark)
+        }
     }
 }
