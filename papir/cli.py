@@ -254,7 +254,17 @@ def cmd_doctor(args):
 
 
 def build_parser():
-    ap = argparse.ArgumentParser(prog="papir", description="Beam reading material to your e-reader via API.")
+    ap = argparse.ArgumentParser(
+        prog="papir",
+        description="Beam reading material to your e-reader via API.",
+        epilog=(
+            "examples:\n"
+            '  papir send book.pdf --author "Name" --title "Title" --to SERIAL\n'
+            "    --author is an optional author tag (defaults to your stored author)\n"
+            '  papir book.pdf --title "Design Systems"  # shorthand, uses defaults'
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
     ap.add_argument("--client", default=None, help="path to client.json (default ~/.config/papir/client.json)")
     ap.add_argument("--set-default", action="store_true",
                     help="choose the default Kindle (same as `papir set-default`)")
@@ -279,7 +289,7 @@ def build_parser():
 
     p = sub.add_parser("send", help="send a file (author/title default from setup + filename)")
     p.add_argument("file")
-    p.add_argument("--author", default=None, help="defaults to your stored author")
+    p.add_argument("--author", default=None, help="optional author tag (defaults to your stored author)")
     p.add_argument("--title", default=None, help="defaults to the cleaned-up filename")
     p.add_argument("--format", default="auto")
     p.add_argument("--to", default=None, help="serial, 'all', 'library', or omit for the default")

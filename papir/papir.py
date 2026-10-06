@@ -226,7 +226,9 @@ def papirSend(file_path, author=None, title=None, target=None, fmt="auto", archi
             on_progress=None, convert=False):
     """Beam one file to your e-reader. Returns the sku Amazon assigns.
 
-    author/title fall back to the stored default author / cleaned filename.
+    author (optional): author tag shown on the device; falls back to the
+    stored default author, then the Amazon account name.
+    title (optional): falls back to the cleaned filename.
     target: None/'default' (stored default, else all), a serial string,
     a list of serials, "all", or [] / "library" for cloud-library-only.
     on_progress(sent, total): optional upload progress callback.

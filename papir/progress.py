@@ -13,7 +13,9 @@
 import sys
 import time
 
-WIDTH = 24
+WIDTH = 10
+MIN_STEP = 0.05  # redraw at most every 5% — ~20 frames per upload, not per chunk
+THROTTLE = 0.25  # ... and at most ~4 redraws/sec
 
 
 def human_size(n):
@@ -36,6 +38,7 @@ class SendBar:
         self.tty = self.out.isatty() if hasattr(self.out, "isatty") else False
         self.start = time.time()
         self.last_draw = 0.0
+        self.last_pct = -1.0
         self.sent = 0
         self.closed = False
         self.write(f"\U0001F4E4 Sending {label} ({human_size(total)}) …\n")
@@ -65,10 +68,14 @@ class SendBar:
                 self._draw(self.total)  # full 100% frame first — never skip it
             self.done()  # completion always reported, tty or not
             return
+        pct = min(sent / self.total, 1.0)
         now = time.time()
-        if now - self.last_draw < 0.1:
+        if pct - self.last_pct < MIN_STEP:
+            return  # coarsen: skip sub-5% steps
+        if now - self.last_draw < THROTTLE:
             return  # throttle redraws
         self.last_draw = now
+        self.last_pct = pct
         if not self.tty:
             return  # start/done lines only in logs
         self._draw(sent)

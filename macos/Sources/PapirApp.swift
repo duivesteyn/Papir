@@ -38,25 +38,52 @@ struct SendResult: Identifiable {
     @Published private var deviceError = false
     private var deviceRequest = UUID()
 
-    struct Device: Decodable { let serial: String; let name: String? }
+    struct Device: Codable { let serial: String; let name: String? }
     struct Destinations: Decodable {
         let default_target: String?
         let devices: [Device]
     }
     var destinationName: String {
-        if !signedIn { return "Sign in to choose your Kindle" }
         let serial = target.isEmpty ? defaultTarget : target
         if serial == "library" { return "Kindle library" }
         if serial == "all" { return "All devices" }
-        if let serial {
-            if let device = devices.first(where: { $0.serial == serial }), let name = device.name, !name.isEmpty { return name }
-            return loadingDevices ? "Loading device…" : "Device: \(serial)"
+        if let serial, let device = devices.first(where: { $0.serial == serial }),
+           let name = device.name, !name.isEmpty { return name }
+        if target.isEmpty, !lastDestinationName.isEmpty { return lastDestinationName }
+        return "Kindle"
+    }
+    var hasCachedDestination: Bool { !lastDestinationName.isEmpty || destinationsRefreshedAt != nil }
+    @Published private var lastDestinationName = ""
+    private let destinationNameKey = "Papir.lastDestinationName"
+    private func rememberDestinationName() {
+        let serial = target.isEmpty ? defaultTarget : target
+        let name: String?
+        if serial == "library" { name = "Kindle library" }
+        else if serial == "all" { name = "All devices" }
+        else { name = devices.first(where: { $0.serial == serial })?.name }
+        if let name, !name.isEmpty {
+            lastDestinationName = name
+            UserDefaults.standard.set(name, forKey: destinationNameKey)
         }
-        if loadingDevices { return "Loading destination…" }
-        return deviceError ? "Destination unavailable" : "All devices"
     }
     var destinationHint: String {
         deviceError ? "Could not refresh device names. Your CLI destination is still used." : "Send to \(destinationName)"
+    }
+    private let destinationCacheKey = "Papir.destinationCache"
+    private struct DestinationCache: Codable {
+        let devices: [Device]
+        let defaultTarget: String?
+        let accountName: String
+        let refreshedAt: Date
+    }
+    private var cachedAccountName = ""
+    private var destinationsRefreshedAt: Date?
+    private func clearDestinationCache() {
+        UserDefaults.standard.removeObject(forKey: destinationCacheKey)
+        UserDefaults.standard.removeObject(forKey: destinationNameKey)
+        lastDestinationName = ""
+        devices = []; defaultTarget = nil; destinationsRefreshedAt = nil; cachedAccountName = ""
+        deviceRequest = UUID(); loadingDevices = false; deviceError = false
     }
     func refreshDevices() async {
         let request = UUID()
@@ -71,11 +98,20 @@ struct SendResult: Identifiable {
             let data = try JSONDecoder().decode(Destinations.self, from: Data(response.1.utf8))
             devices = data.devices
             defaultTarget = data.default_target
+            rememberDestinationName()
+            destinationsRefreshedAt = Date()
+            cachedAccountName = accountName
+            let cache = DestinationCache(devices: devices, defaultTarget: defaultTarget,
+                                         accountName: accountName, refreshedAt: Date())
+            if let encoded = try? JSONEncoder().encode(cache) {
+                UserDefaults.standard.set(encoded, forKey: destinationCacheKey)
+            }
         } catch { if deviceRequest == request { deviceError = true } }
     }
     @Published var convert = false
     @Published var busy = false
-    @Published var results: [SendResult] = []
+    @Published var failures: [SendResult] = []
+    @Published var showSuccess = false
     @Published var status = "Ready when you are"
     @Published var executable = ""
     @Published var signedIn = false
@@ -115,20 +151,63 @@ struct SendResult: Identifiable {
         }
         return reply
     }
+    private let settingsCacheKey = "Papir.settingsCache"
+    private struct SettingsCache: Codable {
+        let accountName: String
+        let author: String
+        let destination: String
+    }
+    @Published private var hasCachedSettings = false
+    var showsAccountSettings: Bool { signedIn || (checkingAccount && hasCachedSettings) }
+    private func cacheSettings(_ reply: BridgeReply) {
+        guard reply.signed_in == true else {
+            UserDefaults.standard.removeObject(forKey: settingsCacheKey)
+            hasCachedSettings = false
+            return
+        }
+        let cache = SettingsCache(accountName: reply.account_name ?? "",
+                                  author: reply.default_author ?? "",
+                                  destination: reply.default_target ?? "all")
+        if let data = try? JSONEncoder().encode(cache) {
+            UserDefaults.standard.set(data, forKey: settingsCacheKey)
+            hasCachedSettings = true
+        }
+    }
     private func applyAccount(_ reply: BridgeReply) {
+        cacheSettings(reply)
         signedIn = reply.signed_in ?? false
         accountName = reply.account_name ?? ""
         defaultAuthor = reply.default_author ?? ""
         defaultDestination = reply.default_target ?? "all"
-        defaultTarget = defaultDestination
+        if signedIn {
+            defaultTarget = defaultDestination
+            rememberDestinationName()
+        }
     }
+    private var checkingAccountInFlight = false
     func bootstrap() async {
+        guard !checkingAccountInFlight else { return }
+        checkingAccountInFlight = true
+        let previousAuthor = defaultAuthor
+        let previousDestination = defaultDestination
+        let previousAccount = accountName
         checkingAccount = true
+        defer { checkingAccountInFlight = false }
         defer { checkingAccount = false }
         do {
             let reply = try await bridge(["action": "status"])
+            if reply.signed_in == true && !cachedAccountName.isEmpty && cachedAccountName != (reply.account_name ?? "") { clearDestinationCache() }
+            let editedAuthor = defaultAuthor != previousAuthor ? defaultAuthor : nil
+            let editedDestination = defaultDestination != previousDestination ? defaultDestination : nil
             applyAccount(reply)
-            if signedIn { await refreshDevices() }
+            if signedIn && previousAccount == accountName {
+                if let editedAuthor { defaultAuthor = editedAuthor }
+                if let editedDestination { defaultDestination = editedDestination }
+            }
+            checkingAccount = false
+            if signedIn && (destinationsRefreshedAt.map { Date().timeIntervalSince($0) >= 86400 } ?? true) {
+                await refreshDevices()
+            }
         } catch { authError = error.localizedDescription }
     }
     func beginSignIn() async {
@@ -156,7 +235,7 @@ struct SendResult: Identifiable {
     }
     func cancelSignIn() { redirect = ""; verifier = ""; signinURL = nil; awaitingRedirect = false; authError = "" }
     func saveDefaults() async {
-        guard !authBusy, signedIn, !busy else { return }
+        guard !checkingAccount, !authBusy, signedIn, !busy else { return }
         authBusy = true; authError = ""
         defer { authBusy = false }
         do {
@@ -165,22 +244,37 @@ struct SendResult: Identifiable {
         } catch { authError = error.localizedDescription }
     }
     func signOut() async {
-        guard !authBusy, !busy else { return }
+        guard !checkingAccount, !authBusy, !busy else { return }
         authBusy = true; authError = ""
         defer { authBusy = false }
         do {
             applyAccount(try await bridge(["action": "logout"]))
-            devices = []; target = ""; cancelSignIn()
+            clearDestinationCache(); target = ""; showSuccess = false; cancelSignIn()
         } catch { authError = error.localizedDescription }
     }
 
     init() {
         AppDelegate.sender = self
         executable = bundledExecutable
+        if let data = UserDefaults.standard.data(forKey: settingsCacheKey),
+           let cache = try? JSONDecoder().decode(SettingsCache.self, from: data) {
+            accountName = cache.accountName; defaultAuthor = cache.author
+            defaultDestination = cache.destination; defaultTarget = cache.destination
+            hasCachedSettings = true
+        }
+        lastDestinationName = UserDefaults.standard.string(forKey: destinationNameKey) ?? ""
+        if let data = UserDefaults.standard.data(forKey: destinationCacheKey),
+           let cache = try? JSONDecoder().decode(DestinationCache.self, from: data) {
+            devices = cache.devices; defaultTarget = cache.defaultTarget
+            cachedAccountName = cache.accountName; destinationsRefreshedAt = cache.refreshedAt
+            rememberDestinationName()
+        }
     }
 
     func add(_ urls: [URL]) {
         guard !busy else { return }
+        showSuccess = false
+        status = "Ready when you are"
         for url in urls where url.isFileURL && !files.contains(url) { files.append(url) }
     }
     func chooseFiles() {
@@ -199,11 +293,13 @@ struct SendResult: Identifiable {
         }
     }
     func send() {
-        guard !busy, !authBusy, signedIn, !files.isEmpty else { return }
+        guard !checkingAccount, !busy, !authBusy, signedIn, !files.isEmpty else { return }
         guard FileManager.default.isExecutableFile(atPath: executable) else {
             status = "Choose your installed papir CLI in Settings first."
             return
         }
+        showSuccess = false
+        failures = []
         busy = true
         let pending = files
         Task {
@@ -216,13 +312,14 @@ struct SendResult: Identifiable {
                 if convert { args.append("--convert") }
                 do {
                     let result = try await run(args)
-                    results.insert(SendResult(name: file.lastPathComponent, success: result.0, message: result.1), at: 0)
                     if result.0 { files.removeAll { $0 == file } }
+                    else { failures.append(SendResult(name: file.lastPathComponent, success: false, message: result.1)) }
                 } catch {
-                    results.insert(SendResult(name: file.lastPathComponent, success: false, message: error.localizedDescription), at: 0)
+                    failures.append(SendResult(name: file.lastPathComponent, success: false, message: error.localizedDescription))
                 }
             }
             busy = false
+            showSuccess = failures.isEmpty
             status = files.isEmpty ? "Accepted by service · Device delivery pending" : "Some documents need attention. Review the errors and retry."
         }
     }
@@ -312,7 +409,12 @@ struct ContentView: View {
                     .buttonStyle(.plain).help("Refresh device names").disabled(sender.busy)
             }.help(sender.destinationHint).padding(12).frame(maxWidth: .infinity, alignment: .leading)
                 .background(ivory.opacity(0.08), in: RoundedRectangle(cornerRadius: 9))
-            VStack(spacing: 10) {
+            ZStack {
+                if sender.showSuccess {
+                    SendSuccessView()
+                        .transition(.opacity)
+                } else {
+                VStack(spacing: 10) {
                 Image(systemName: "doc.on.doc").font(.system(size: 30)).foregroundStyle(ivory.opacity(0.72))
                 Text("A little less screen time.").font(.headline)
                 Text("Drop something good to read.").foregroundStyle(ivory.opacity(0.72))
@@ -320,6 +422,9 @@ struct ContentView: View {
             }.frame(maxWidth: .infinity).padding(24)
                 .background(hovering ? ivory.opacity(0.12) : .clear)
                 .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(ivory.opacity(0.3), style: StrokeStyle(lineWidth: 1, dash: [5])))
+                }
+            }
+            .animation(.easeInOut(duration: 0.25), value: sender.showSuccess)
                 .onDrop(of: [UTType.fileURL.identifier], isTargeted: $hovering) { providers in
                     for provider in providers {
                         _ = provider.loadObject(ofClass: URL.self) { url, _ in
@@ -329,7 +434,7 @@ struct ContentView: View {
                     return true
                 }
             if sender.checkingAccount {
-                ProgressView("Checking account…")
+                if !sender.hasCachedDestination { ProgressView().controlSize(.small) }
             } else if !sender.signedIn {
                 SignInView().environmentObject(sender)
             }
@@ -352,9 +457,9 @@ struct ContentView: View {
                     }.buttonStyle(.borderedProminent).tint(ivory).foregroundStyle(green)
                 }.textFieldStyle(.roundedBorder)
             }
-            if !sender.results.isEmpty {
-                Text("RECENT SENDS").font(.caption).foregroundStyle(ivory.opacity(0.72))
-                ForEach(sender.results.prefix(5)) { result in
+            if !sender.failures.isEmpty {
+                Text("NEEDS ATTENTION").font(.caption).foregroundStyle(ivory.opacity(0.72))
+                ForEach(sender.failures) { result in
                     HStack(alignment: .top) {
                         Image(systemName: result.success ? "checkmark.circle" : "exclamationmark.circle").foregroundStyle(result.success ? ivory : Color(red: 1, green: 0.65, blue: 0.6))
                         VStack(alignment: .leading, spacing: 3) {
@@ -369,6 +474,45 @@ struct ContentView: View {
         }.padding(24).frame(width: 390).foregroundStyle(ivory).disabled(sender.busy)
             .onOpenURL { sender.add([$0]) }
             .task { await sender.bootstrap() }
+    }
+}
+
+struct SuccessTick: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        path.move(to: CGPoint(x: rect.width * 0.22, y: rect.height * 0.52))
+        path.addLine(to: CGPoint(x: rect.width * 0.43, y: rect.height * 0.72))
+        path.addLine(to: CGPoint(x: rect.width * 0.79, y: rect.height * 0.30))
+        return path
+    }
+}
+
+struct SendSuccessView: View {
+    @EnvironmentObject var sender: Sender
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var appeared = false
+    private let successGreen = Color(red: 0.35, green: 0.85, blue: 0.55)
+
+    var body: some View {
+        VStack(spacing: 10) {
+            ZStack {
+                Circle().fill(successGreen.opacity(0.12))
+                Circle().strokeBorder(successGreen.opacity(0.3), lineWidth: 1)
+                SuccessTick().trim(from: 0, to: appeared ? 1 : 0)
+                    .stroke(successGreen, style: StrokeStyle(lineWidth: 5, lineCap: .round, lineJoin: .round))
+            }
+            .frame(width: 64, height: 64)
+            .scaleEffect(appeared || reduceMotion ? 1 : 0.8)
+            Text("Success").font(.title3.weight(.semibold))
+            Text("Accepted by service · Device delivery pending")
+                .font(.caption).foregroundStyle(PapirTheme.ivory.opacity(0.72))
+            Button("Send more documents…", action: sender.chooseFiles)
+        }
+        .frame(maxWidth: .infinity).padding(24)
+        .accessibilityElement(children: .contain)
+        .onAppear {
+            withAnimation(reduceMotion ? nil : .easeOut(duration: 0.45)) { appeared = true }
+        }
     }
 }
 
@@ -402,8 +546,9 @@ struct PreferencesView: View {
     @EnvironmentObject var sender: Sender
     @State private var confirmSignOut = false
     var body: some View {
+        ScrollView {
         Form {
-            if sender.signedIn {
+            if sender.showsAccountSettings {
                 LabeledContent("Account", value: sender.accountName.isEmpty ? "Connected" : sender.accountName)
                 TextField("Default author", text: $sender.defaultAuthor)
                 Picker("Default destination", selection: $sender.defaultDestination) {
@@ -417,9 +562,11 @@ struct PreferencesView: View {
                 HStack {
                     Button("Save Defaults") { Task { await sender.saveDefaults() } }
                     Button("Refresh Devices") { Task { await sender.refreshDevices() } }
-                }.disabled(sender.authBusy || sender.busy)
+                }.disabled(sender.checkingAccount || sender.authBusy || sender.busy)
                 Text("These defaults are shared with the Python CLI.").font(.caption).foregroundStyle(.secondary)
-                Button("Sign Out…") { confirmSignOut = true }.disabled(sender.busy || sender.authBusy)
+                Button("Sign Out…") { confirmSignOut = true }.disabled(sender.checkingAccount || sender.busy || sender.authBusy)
+            } else if sender.checkingAccount {
+                ProgressView().controlSize(.small)
             } else { SignInView().environmentObject(sender) }
             if sender.signedIn && !sender.authError.isEmpty { Text(sender.authError).foregroundStyle(.red).font(.caption) }
             Divider()
@@ -427,13 +574,19 @@ struct PreferencesView: View {
                 .font(.caption).foregroundStyle(.secondary)
             DisclosureGroup("Advanced") {
                 Text(sender.executable).font(.caption).textSelection(.enabled)
-                Button("Choose external engine…", action: sender.chooseCLI).disabled(sender.busy || sender.authBusy)
+                    .fixedSize(horizontal: false, vertical: true)
+                Button("Choose external engine…", action: sender.chooseCLI).disabled(sender.checkingAccount || sender.busy || sender.authBusy)
                 Button("Use bundled engine") { sender.executable = sender.bundledExecutable; Task { await sender.bootstrap() } }
-                    .disabled(sender.busy || sender.authBusy)
+                    .disabled(sender.checkingAccount || sender.busy || sender.authBusy)
                 TextField("Destination override for this session", text: $sender.target)
                 Text("Leave empty to use your saved default.").font(.caption).foregroundStyle(.secondary)
             }
-        }.padding(24).frame(width: 440)
+        }
+        .fixedSize(horizontal: false, vertical: true)
+        .padding(24)
+        .frame(maxWidth: .infinity, alignment: .topLeading)
+        }
+        .frame(width: 440, height: 420)
             .confirmationDialog("Sign out of Papir? This also signs out the CLI on this Mac.", isPresented: $confirmSignOut) {
                 Button("Sign Out", role: .destructive) { Task { await sender.signOut() } }
             }
@@ -479,16 +632,44 @@ struct AboutCommands: Commands {
     }
 }
 
+private struct ContentHeightKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
+    }
+}
+
+struct PapirMainView: View {
+    @State private var contentHeight: CGFloat = 360
+    private var maximumHeight: CGFloat {
+        max(360, (NSScreen.main?.visibleFrame.height ?? 800) - 80)
+    }
+    var body: some View {
+        ScrollView {
+            ContentView()
+                .fixedSize(horizontal: false, vertical: true)
+                .background {
+                    GeometryReader { geometry in
+                        Color.clear.preference(key: ContentHeightKey.self, value: geometry.size.height)
+                    }
+                }
+        }
+        .frame(width: 390, height: min(contentHeight, maximumHeight))
+        .onPreferenceChange(ContentHeightKey.self) { height in
+            if height > 0 { contentHeight = ceil(height) }
+        }
+        .background(PapirTheme.green.ignoresSafeArea())
+        .background(PapirWindowStyle())
+        .preferredColorScheme(.dark)
+    }
+}
+
 @main struct PapirApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject private var sender = Sender()
     var body: some Scene {
         Window("Papir", id: "main") {
-            ScrollView { ContentView().environmentObject(sender) }
-                .frame(width: 390, height: sender.files.isEmpty && sender.results.isEmpty && sender.signedIn ? 390 : 650)
-                .background(PapirTheme.green.ignoresSafeArea())
-                .background(PapirWindowStyle())
-                .preferredColorScheme(.dark)
+            PapirMainView().environmentObject(sender)
         }.windowStyle(.hiddenTitleBar).windowResizability(.contentSize)
             .commands { AboutCommands(); CommandGroup(after: .newItem) { Button("Open Documents…", action: sender.chooseFiles).keyboardShortcut("o").disabled(sender.busy) } }
         Window("About Papir", id: "about") { AboutView() }

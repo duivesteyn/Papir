@@ -55,12 +55,15 @@ CLI:
 ```
 pip install .
 papir login                          # sign in, set default author + Kindle
+papir login --url URL --verifier VERIFIER  # non-interactive (or --code CODE for a bare pasted code)
 papir devices                        # SERIAL: Name (* marks the default)
+papir devices --json                 # machine-readable devices + default
 papir set-default                    # arrow-key/number picker (or `papir --set-default`)
 papir set-default SERIAL             # non-interactive (or `all` to clear)
 papir set-default --author "deCapital"
 papir send report.pdf
 papir send report.pdf --author "deCapital" --title "Imperial Investment Case" --to DEVICE_SERIAL
+papir send report.pdf --convert      # convert PDF to Kindle format (default keeps native PDF)
 papir document.pdf --title "Design Systems"   # shorthand, uses defaults
 papir doctor [--live]
 papir logout
@@ -68,6 +71,8 @@ papir logout
 
 `papir send` without `--to` uses your default Kindle (else all devices).
 `--to` accepts a serial, `all`, or `library` (cloud-library-only, no device needed).
+`--format` overrides the detected file type (default `auto`); `--no-archive` skips saving to your Kindle library.
+`--client PATH` overrides the credential file (default `~/.config/papir/client.json`).
 
 # Example Output Data
 
