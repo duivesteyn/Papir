@@ -8,6 +8,8 @@ A lightweight utility to beam reading material directly to your e-reader via API
 > A self-contained, on-demand SwiftUI `Papir.app` lives in `macos/`, with bundled
 > Python and browser sign-in; see [Mac setup](macos/README.md).
 
+<img src="_screenshots/Screenshot%202026-10-06%20at%2012.26.32.png" width="480" alt="Papir Mac app with a forest-green window and title area, sending to Benjamin’s Scribe">
+
 `papir` is Norwegian for paper. p-[api]-r hides API in the middle.
 
 Unofficial. Not affiliated with Amazon / Kindle. Speaks the private protocol used by
