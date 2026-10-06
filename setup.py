@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="papir",
-    version="0.2.1",
+    version="0.2.2",
     author="Benjamin M. Duivesteyn",
     author_email="duivesteyn@gmail.com",
     packages=find_packages(),

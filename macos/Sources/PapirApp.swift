@@ -489,9 +489,10 @@ struct AboutCommands: Commands {
                 .background(PapirTheme.green.ignoresSafeArea())
                 .background(PapirWindowStyle())
                 .preferredColorScheme(.dark)
-        }.windowResizability(.contentSize)
+        }.windowStyle(.hiddenTitleBar).windowResizability(.contentSize)
             .commands { AboutCommands(); CommandGroup(after: .newItem) { Button("Open Documents…", action: sender.chooseFiles).keyboardShortcut("o").disabled(sender.busy) } }
         Window("About Papir", id: "about") { AboutView() }
+            .windowStyle(.hiddenTitleBar)
             .windowResizability(.contentSize)
 
         Settings {

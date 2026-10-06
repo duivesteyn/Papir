@@ -26,4 +26,4 @@ __all__ = ["papirSend", "papirLogin", "papirDevices", "papirLogout",
            "clean_title", "resolve_author", "resolve_title",
            "get_default_target", "set_default_target",
            "get_default_author", "set_default_author"]
-__version__ = "0.2.1"
+__version__ = "0.2.2"
