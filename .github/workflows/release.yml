@@ -1,0 +1,77 @@
+name: Mac release
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: read
+jobs:
+  build:
+    name: Build ${{ matrix.arch }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            arch: arm64
+          - runner: macos-15-intel
+            arch: x86_64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Check release tag and architecture
+        env:
+          PAPIR_TAG: ${{ github.ref_name }}
+          PAPIR_EXPECTED_ARCH: ${{ matrix.arch }}
+        run: |
+          python3 - <<'PY'
+          import os, platform, plistlib
+          with open('macos/Info.plist', 'rb') as source:
+              version = plistlib.load(source)['CFBundleShortVersionString']
+          assert os.environ['PAPIR_TAG'] == 'v' + version
+          assert platform.machine() == os.environ['PAPIR_EXPECTED_ARCH']
+          PY
+      - name: Offline tests
+        run: |
+          python3 -m pip install -r requirements.txt
+          python3 test.py
+          python3 -m unittest discover -s macos/tests -v
+      - name: Build and verify package
+        run: |
+          bash macos/build.sh
+          bash macos/package.sh
+          python3 macos/verify-package.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mac-${{ matrix.arch }}
+          path: macos/releases/
+          if-no-files-found: error
+  publish:
+    name: Publish verified release
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: mac-*
+          path: release-assets
+          merge-multiple: true
+      - name: Combine checksums
+        working-directory: release-assets
+        run: sha256sum Papir-*.zip > SHA256SUMS.txt
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PAPIR_TAG: ${{ github.ref_name }}
+        run: |
+          gh release create "$PAPIR_TAG" release-assets/* \
+            --verify-tag --title "Papir $PAPIR_TAG" \
+            --notes-file macos/RELEASE-NOTES.md --prerelease

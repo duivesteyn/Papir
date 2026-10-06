@@ -218,3 +218,21 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Papir local builds, credentials and reading documents
+__pycache__/
+*.pyc
+.DS_Store
+dist/
+build/
+*.egg-info/
+.venv/
+.venv*/
+client.json
+
+macos/build/
+macos/build-tools/
+macos/releases/
+
+# Local reading documents never belong in the public project.
+/*.pdf
