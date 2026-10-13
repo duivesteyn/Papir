@@ -34,7 +34,12 @@ struct SendResult: Identifiable {
     @Published var target = ""
     @Published private var devices: [Device] = []
     @Published private var defaultTarget: String?
-    @Published private var loadingDevices = false
+    @Published private(set) var loadingDevices = false
+    @Published private(set) var pendingDrops = 0
+    @Published private(set) var sendTotal = 0
+    @Published private(set) var sendCompleted = 0
+    @Published private(set) var sendingFilename = ""
+    var sendProgressText: String { "Sending \(min(sendCompleted + 1, sendTotal))/\(sendTotal) \(sendTotal == 1 ? "document" : "documents")" }
     @Published private var deviceError = false
     private var deviceRequest = UUID()
 
@@ -271,11 +276,56 @@ struct SendResult: Identifiable {
         }
     }
 
+    private struct IntakeBatch {
+        var remaining: Int
+        var urls: [URL] = []
+        var failed = false
+    }
+    private var intakeOrder: [UUID] = []
+    private var intakeBatches: [UUID: IntakeBatch] = [:]
+
+    private func flushIntake() {
+        while let id = intakeOrder.first, let batch = intakeBatches[id], batch.remaining == 0 {
+            intakeOrder.removeFirst()
+            intakeBatches.removeValue(forKey: id)
+            showSuccess = false
+            status = batch.failed ? "Could not read a dropped document. Try Choose Documents…" : "Ready when you are"
+            let sorted = batch.urls.filter { $0.isFileURL }.sorted {
+                let comparison = $0.lastPathComponent.localizedStandardCompare($1.lastPathComponent)
+                return comparison == .orderedSame ? $0.path < $1.path : comparison == .orderedAscending
+            }
+            for url in sorted where !files.contains(url) { files.append(url) }
+        }
+    }
     func add(_ urls: [URL]) {
         guard !busy else { return }
-        showSuccess = false
-        status = "Ready when you are"
-        for url in urls where url.isFileURL && !files.contains(url) { files.append(url) }
+        let id = UUID()
+        intakeOrder.append(id)
+        intakeBatches[id] = IntakeBatch(remaining: 0, urls: urls)
+        flushIntake()
+    }
+    func acceptDrop(_ providers: [NSItemProvider]) -> Bool {
+        guard !busy else { return false }
+        let supported = providers.filter { $0.canLoadObject(ofClass: URL.self) }
+        guard !supported.isEmpty else { return false }
+        let id = UUID()
+        intakeOrder.append(id)
+        intakeBatches[id] = IntakeBatch(remaining: supported.count)
+        pendingDrops += supported.count
+        for provider in supported {
+            _ = provider.loadObject(ofClass: URL.self) { url, _ in
+                Task { @MainActor in
+                    self.pendingDrops -= 1
+                    guard var batch = self.intakeBatches[id] else { return }
+                    batch.remaining -= 1
+                    if let url { batch.urls.append(url) }
+                    else { batch.failed = true }
+                    self.intakeBatches[id] = batch
+                    self.flushIntake()
+                }
+            }
+        }
+        return true
     }
     func chooseFiles() {
         let panel = NSOpenPanel()
@@ -293,17 +343,21 @@ struct SendResult: Identifiable {
         }
     }
     func send() {
-        guard !checkingAccount, !busy, !authBusy, signedIn, !files.isEmpty else { return }
+        guard !checkingAccount, !busy, !authBusy, pendingDrops == 0, signedIn, !files.isEmpty else { return }
         guard FileManager.default.isExecutableFile(atPath: executable) else {
             status = "Choose your installed papir CLI in Settings first."
             return
         }
         showSuccess = false
         failures = []
-        busy = true
         let pending = files
+        sendTotal = pending.count
+        sendCompleted = 0
+        sendingFilename = pending[0].lastPathComponent
+        busy = true
         Task {
             for file in pending {
+                sendingFilename = file.lastPathComponent
                 status = "Sending \(file.lastPathComponent)…"
                 var args = ["send", file.path]
                 if pending.count == 1 && !title.isEmpty { args += ["--title", title] }
@@ -317,6 +371,7 @@ struct SendResult: Identifiable {
                 } catch {
                     failures.append(SendResult(name: file.lastPathComponent, success: false, message: error.localizedDescription))
                 }
+                sendCompleted += 1
             }
             busy = false
             showSuccess = failures.isEmpty
@@ -324,6 +379,12 @@ struct SendResult: Identifiable {
         }
     }
     private func run(_ arguments: [String], captureOutput: Bool = false, input: Data? = nil) async throws -> (Bool, String) {
+        let engine = executable
+        return try await Task.detached(priority: .userInitiated) {
+            try await Self.execute(engine, arguments: arguments, captureOutput: captureOutput, input: input)
+        }.value
+    }
+    nonisolated private static func execute(_ executable: String, arguments: [String], captureOutput: Bool, input: Data?) async throws -> (Bool, String) {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
         let output = directory.appendingPathComponent("stdout")
@@ -387,6 +448,18 @@ struct PapirWindowStyle: NSViewRepresentable {
     }
 }
 
+struct PapirSendButtonStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.body.weight(.semibold))
+            .foregroundStyle(PapirTheme.green)
+            .padding(.vertical, 9)
+            .background(PapirTheme.ivory.opacity(configuration.isPressed ? 0.82 : 1), in: RoundedRectangle(cornerRadius: 7))
+            .opacity(isEnabled ? 1 : 0.65)
+    }
+}
+
 struct ContentView: View {
     @EnvironmentObject var sender: Sender
     @State private var hovering = false
@@ -410,11 +483,14 @@ struct ContentView: View {
             }.help(sender.destinationHint).padding(12).frame(maxWidth: .infinity, alignment: .leading)
                 .background(ivory.opacity(0.08), in: RoundedRectangle(cornerRadius: 9))
             ZStack {
-                if sender.showSuccess {
+                if sender.busy {
+                    SendProgressView().transition(.opacity)
+                } else if sender.showSuccess {
                     SendSuccessView()
                         .transition(.opacity)
                 } else {
                 VStack(spacing: 10) {
+                if sender.pendingDrops > 0 { ProgressView().controlSize(.small).tint(ivory) }
                 Image(systemName: "doc.on.doc").font(.system(size: 30)).foregroundStyle(ivory.opacity(0.72))
                 Text("A little less screen time.").font(.headline)
                 Text("Drop something good to read.").foregroundStyle(ivory.opacity(0.72))
@@ -425,20 +501,20 @@ struct ContentView: View {
                 }
             }
             .animation(.easeInOut(duration: 0.25), value: sender.showSuccess)
+            .animation(.easeInOut(duration: 0.25), value: sender.busy)
                 .onDrop(of: [UTType.fileURL.identifier], isTargeted: $hovering) { providers in
-                    for provider in providers {
-                        _ = provider.loadObject(ofClass: URL.self) { url, _ in
-                            if let url { Task { @MainActor in sender.add([url]) } }
-                        }
-                    }
-                    return true
+                    sender.acceptDrop(providers)
                 }
-            if sender.checkingAccount {
-                if !sender.hasCachedDestination { ProgressView().controlSize(.small) }
-            } else if !sender.signedIn {
+            if sender.files.isEmpty && (sender.checkingAccount || sender.loadingDevices) {
+                HStack(spacing: 8) {
+                    ProgressView().controlSize(.small).tint(ivory)
+                    Text(sender.checkingAccount ? "Checking account…" : "Refreshing devices…").font(.caption)
+                }
+            }
+            if !sender.checkingAccount && !sender.signedIn {
                 SignInView().environmentObject(sender)
             }
-            if !sender.files.isEmpty && sender.signedIn {
+            if !sender.files.isEmpty {
                 VStack(alignment: .leading, spacing: 10) {
                     ForEach(sender.files, id: \.self) { file in
                         HStack {
@@ -453,8 +529,14 @@ struct ContentView: View {
                     TextField("Author (use CLI default)", text: $sender.author)
                     Toggle("Convert PDF to Kindle format", isOn: $sender.convert).font(.subheadline)
                     Button(action: sender.send) {
-                        HStack { if sender.busy { ProgressView().controlSize(.small) }; Text(sender.busy ? "Sending…" : "Send \(sender.files.count == 1 ? "document" : "documents")") }.frame(maxWidth: .infinity)
-                    }.buttonStyle(.borderedProminent).tint(ivory).foregroundStyle(green)
+                        HStack(spacing: 8) {
+                            if sender.busy || sender.checkingAccount || sender.loadingDevices || sender.pendingDrops > 0 {
+                                ProgressView().controlSize(.small).tint(green)
+                            }
+                            Text(sender.busy ? sender.sendProgressText : sender.checkingAccount ? "Checking account…" : "Send \(sender.files.count == 1 ? "document" : "documents")")
+                        }.frame(maxWidth: .infinity)
+                    }.buttonStyle(PapirSendButtonStyle())
+                        .disabled(sender.checkingAccount || !sender.signedIn || sender.authBusy || sender.pendingDrops > 0)
                 }.textFieldStyle(.roundedBorder)
             }
             if !sender.failures.isEmpty {
@@ -474,6 +556,45 @@ struct ContentView: View {
         }.padding(24).frame(width: 390).foregroundStyle(ivory).disabled(sender.busy)
             .onOpenURL { sender.add([$0]) }
             .task { await sender.bootstrap() }
+    }
+}
+
+struct SendProgressView: View {
+    @EnvironmentObject var sender: Sender
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var animating = false
+
+    var body: some View {
+        VStack(spacing: 12) {
+            ZStack {
+                Circle().fill(PapirTheme.ivory.opacity(0.08))
+                Circle().strokeBorder(PapirTheme.ivory.opacity(0.18), lineWidth: 4)
+                Circle().trim(from: 0, to: 0.28)
+                    .stroke(PapirTheme.ivory, style: StrokeStyle(lineWidth: 4, lineCap: .round))
+                    .rotationEffect(.degrees(animating && !reduceMotion ? 360 : 0))
+                    .animation(reduceMotion ? nil : .linear(duration: 1.2).repeatForever(autoreverses: false), value: animating)
+                Image(systemName: "doc.badge.arrow.up")
+                    .font(.system(size: 34, weight: .medium))
+                    .offset(y: animating && !reduceMotion ? -5 : 5)
+                    .animation(reduceMotion ? nil : .easeInOut(duration: 0.65).repeatForever(autoreverses: true), value: animating)
+            }
+            .frame(width: 84, height: 84)
+            .accessibilityHidden(true)
+            Text(sender.sendProgressText)
+                .font(.title3.weight(.semibold)).monospacedDigit()
+            Text(sender.sendingFilename)
+                .font(.caption).foregroundStyle(PapirTheme.ivory.opacity(0.72))
+                .lineLimit(1).truncationMode(.middle)
+            ProgressView(value: Double(sender.sendCompleted), total: Double(max(sender.sendTotal, 1)))
+                .tint(PapirTheme.ivory)
+                .accessibilityLabel("Documents processed")
+                .accessibilityValue("\(sender.sendCompleted) of \(sender.sendTotal)")
+            Text("\(sender.sendCompleted) of \(sender.sendTotal) processed")
+                .font(.caption).monospacedDigit().foregroundStyle(PapirTheme.ivory.opacity(0.72))
+        }
+        .frame(maxWidth: .infinity).padding(24)
+        .background(PapirTheme.ivory.opacity(0.06), in: RoundedRectangle(cornerRadius: 12))
+        .onAppear { animating = true }
     }
 }
 
@@ -498,11 +619,13 @@ struct SendSuccessView: View {
             ZStack {
                 Circle().fill(successGreen.opacity(0.12))
                 Circle().strokeBorder(successGreen.opacity(0.3), lineWidth: 1)
-                SuccessTick().trim(from: 0, to: appeared ? 1 : 0)
+                SuccessTick().trim(from: 0, to: appeared || reduceMotion ? 1 : 0)
                     .stroke(successGreen, style: StrokeStyle(lineWidth: 5, lineCap: .round, lineJoin: .round))
+                    .animation(reduceMotion ? nil : .easeOut(duration: 0.28), value: appeared)
             }
             .frame(width: 64, height: 64)
-            .scaleEffect(appeared || reduceMotion ? 1 : 0.8)
+            .scaleEffect(appeared || reduceMotion ? 1 : 0.55)
+            .animation(reduceMotion ? nil : .spring(response: 0.38, dampingFraction: 0.55), value: appeared)
             Text("Success").font(.title3.weight(.semibold))
             Text("Accepted by service · Device delivery pending")
                 .font(.caption).foregroundStyle(PapirTheme.ivory.opacity(0.72))
@@ -511,7 +634,7 @@ struct SendSuccessView: View {
         .frame(maxWidth: .infinity).padding(24)
         .accessibilityElement(children: .contain)
         .onAppear {
-            withAnimation(reduceMotion ? nil : .easeOut(duration: 0.45)) { appeared = true }
+            appeared = true
         }
     }
 }

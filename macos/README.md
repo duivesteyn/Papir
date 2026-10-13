@@ -59,8 +59,11 @@ immediate Settings display while account status refreshes. Only confirmed saved
 defaults are cached; edits remain drafts until Save Defaults succeeds.
 Device names and the destination are cached between launches, refreshed daily or
 with the refresh button, and cleared on sign-out. The window fits its content on launch and after sending, with scrolling only
-when the content exceeds the available screen height. Sending
-uses an indeterminate indicator; structured percentage progress is still planned.
+when the content exceeds the available screen height. Sending shows a large animated
+document indicator, the current filename and an X/Y document count. The batch
+progress bar advances after each document is processed, including failed attempts;
+it does not represent upload bytes or device delivery. Reduce Motion keeps the
+indicator still. Structured upload percentage progress is still planned.
 
 The planning reference is `../planning/`; the latest
 on-demand window direction supersedes its menu bar/rumps milestones.
