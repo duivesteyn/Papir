@@ -443,7 +443,9 @@ struct PapirWindowStyle: NSViewRepresentable {
         window?.backgroundColor = NSColor(red: 18.0 / 255, green: 51.0 / 255, blue: 37.0 / 255, alpha: 1)
         window?.styleMask.insert(.fullSizeContentView)
         window?.titlebarAppearsTransparent = true
-        window?.toolbar = nil
+        window?.titleVisibility = .hidden
+        window?.titlebarSeparatorStyle = .none
+        window?.isMovableByWindowBackground = true
         window?.appearance = NSAppearance(named: .darkAqua)
     }
 }
@@ -468,12 +470,6 @@ struct ContentView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
             HStack {
-                Image(systemName: "doc").font(.title2)
-                Text("Papir").font(.title2.weight(.semibold))
-                Spacer()
-                SettingsLink { Image(systemName: "slider.horizontal.3") }.help("Settings")
-            }
-            HStack {
                 Image(systemName: "ipad")
                 Text(sender.destinationName)
                     .font(.subheadline).lineLimit(1)
@@ -495,7 +491,7 @@ struct ContentView: View {
                 Text("A little less screen time.").font(.headline)
                 Text("Drop something good to read.").foregroundStyle(ivory.opacity(0.72))
                 Button("Choose Documents…", action: sender.chooseFiles)
-            }.frame(maxWidth: .infinity).padding(24)
+            }.frame(maxWidth: .infinity).padding(30)
                 .background(hovering ? ivory.opacity(0.12) : .clear)
                 .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(ivory.opacity(0.3), style: StrokeStyle(lineWidth: 1, dash: [5])))
                 }
@@ -553,7 +549,7 @@ struct ContentView: View {
             }
             Divider()
             Text(sender.status).font(.caption).foregroundStyle(ivory.opacity(0.72)).accessibilityLabel(sender.status)
-        }.padding(24).frame(width: 390).foregroundStyle(ivory).disabled(sender.busy)
+        }.padding(.horizontal, 24).padding(.bottom, 24).padding(.top, 10).frame(width: 380).foregroundStyle(ivory).disabled(sender.busy)
             .onOpenURL { sender.add([$0]) }
             .task { await sender.bootstrap() }
     }
@@ -668,51 +664,82 @@ struct SignInView: View {
 struct PreferencesView: View {
     @EnvironmentObject var sender: Sender
     @State private var confirmSignOut = false
+    private let ivory = PapirTheme.ivory
     var body: some View {
         ScrollView {
-        Form {
-            if sender.showsAccountSettings {
-                LabeledContent("Account", value: sender.accountName.isEmpty ? "Connected" : sender.accountName)
-                TextField("Default author", text: $sender.defaultAuthor)
-                Picker("Default destination", selection: $sender.defaultDestination) {
-                    Text("All devices").tag("all")
-                    Text("Kindle library only").tag("library")
-                    ForEach(sender.availableDevices, id: \.serial) { device in Text(device.name ?? device.serial).tag(device.serial) }
-                    if !["all", "library"].contains(sender.defaultDestination) && !sender.availableDevices.contains(where: { $0.serial == sender.defaultDestination }) {
-                        Text("Saved device (refresh to load name)").tag(sender.defaultDestination)
+            VStack(alignment: .leading, spacing: 16) {
+                Text("settings")
+                    .font(.system(size: 22, weight: .semibold, design: .serif))
+                if sender.showsAccountSettings {
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Text("Account").foregroundStyle(ivory.opacity(0.72))
+                            Spacer()
+                            Text(sender.accountName.isEmpty ? "Connected" : sender.accountName)
+                                .lineLimit(1).truncationMode(.tail)
+                        }.font(.subheadline)
+                        VStack(alignment: .leading, spacing: 5) {
+                            Text("Default author").font(.caption).foregroundStyle(ivory.opacity(0.72))
+                            TextField("Your name", text: $sender.defaultAuthor)
+                        }
+                        VStack(alignment: .leading, spacing: 5) {
+                            Text("Default destination").font(.caption).foregroundStyle(ivory.opacity(0.72))
+                            Picker("", selection: $sender.defaultDestination) {
+                                Text("All devices").tag("all")
+                                Text("Kindle library only").tag("library")
+                                ForEach(sender.availableDevices, id: \.serial) { device in Text(device.name ?? device.serial).tag(device.serial) }
+                                if !["all", "library"].contains(sender.defaultDestination) && !sender.availableDevices.contains(where: { $0.serial == sender.defaultDestination }) {
+                                    Text("Saved device (refresh to load name)").tag(sender.defaultDestination)
+                                }
+                            }.labelsHidden().frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                        HStack {
+                            Button("Save Defaults") { Task { await sender.saveDefaults() } }
+                                .buttonStyle(.plain).fontWeight(.semibold)
+                            Button("Refresh Devices") { Task { await sender.refreshDevices() } }
+                                .buttonStyle(.plain).foregroundStyle(ivory.opacity(0.72))
+                        }.disabled(sender.checkingAccount || sender.authBusy || sender.busy)
+                        Text("These defaults are shared with the Python CLI.").font(.caption).foregroundStyle(ivory.opacity(0.72))
+                        Button("Sign Out…") { confirmSignOut = true }
+                            .buttonStyle(.plain)
+                            .foregroundStyle(Color(red: 1, green: 0.65, blue: 0.6))
+                            .disabled(sender.checkingAccount || sender.busy || sender.authBusy)
                     }
+                } else if sender.checkingAccount {
+                    HStack(spacing: 8) {
+                        ProgressView().controlSize(.small).tint(ivory)
+                        Text("Checking account…").font(.caption).foregroundStyle(ivory.opacity(0.72))
+                    }
+                } else { SignInView().environmentObject(sender) }
+                if sender.signedIn && !sender.authError.isEmpty {
+                    Text(sender.authError).foregroundStyle(Color(red: 1, green: 0.65, blue: 0.6)).font(.caption).textSelection(.enabled)
                 }
-                HStack {
-                    Button("Save Defaults") { Task { await sender.saveDefaults() } }
-                    Button("Refresh Devices") { Task { await sender.refreshDevices() } }
-                }.disabled(sender.checkingAccount || sender.authBusy || sender.busy)
-                Text("These defaults are shared with the Python CLI.").font(.caption).foregroundStyle(.secondary)
-                Button("Sign Out…") { confirmSignOut = true }.disabled(sender.checkingAccount || sender.busy || sender.authBusy)
-            } else if sender.checkingAccount {
-                ProgressView().controlSize(.small)
-            } else { SignInView().environmentObject(sender) }
-            if sender.signedIn && !sender.authError.isEmpty { Text(sender.authError).foregroundStyle(.red).font(.caption) }
-            Divider()
-            Text(sender.usesBundledEngine ? "Python engine included · No separate installation required" : "Using an external engine")
-                .font(.caption).foregroundStyle(.secondary)
-            DisclosureGroup("Advanced") {
-                Text(sender.executable).font(.caption).textSelection(.enabled)
-                    .fixedSize(horizontal: false, vertical: true)
-                Button("Choose external engine…", action: sender.chooseCLI).disabled(sender.checkingAccount || sender.busy || sender.authBusy)
-                Button("Use bundled engine") { sender.executable = sender.bundledExecutable; Task { await sender.bootstrap() } }
-                    .disabled(sender.checkingAccount || sender.busy || sender.authBusy)
-                TextField("Destination override for this session", text: $sender.target)
-                Text("Leave empty to use your saved default.").font(.caption).foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 10) {
+                    Text(sender.usesBundledEngine ? "Python engine included · No separate installation required" : "Using an external engine")
+                        .font(.caption).foregroundStyle(ivory.opacity(0.72))
+                    DisclosureGroup("Advanced") {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(sender.executable).font(.caption).textSelection(.enabled)
+                                .fixedSize(horizontal: false, vertical: true)
+                            HStack {
+                                Button("Choose external engine…", action: sender.chooseCLI)
+                                Button("Use bundled engine") { sender.executable = sender.bundledExecutable; Task { await sender.bootstrap() } }
+                            }.disabled(sender.checkingAccount || sender.busy || sender.authBusy)
+                            TextField("Destination override for this session", text: $sender.target)
+                            Text("Leave empty to use your saved default.").font(.caption).foregroundStyle(ivory.opacity(0.72))
+                        }.padding(.top, 4)
+                    }.tint(ivory)
+                }
             }
-        }
-        .fixedSize(horizontal: false, vertical: true)
-        .padding(24)
-        .frame(maxWidth: .infinity, alignment: .topLeading)
+            .padding(24)
+            .frame(maxWidth: .infinity, alignment: .topLeading)
         }
         .frame(width: 440, height: 420)
-            .confirmationDialog("Sign out of Papir? This also signs out the CLI on this Mac.", isPresented: $confirmSignOut) {
-                Button("Sign Out", role: .destructive) { Task { await sender.signOut() } }
-            }
+        .foregroundStyle(ivory)
+        .textFieldStyle(.roundedBorder)
+        .confirmationDialog("Sign out of Papir? This also signs out the CLI on this Mac.", isPresented: $confirmSignOut) {
+            Button("Sign Out", role: .destructive) { Task { await sender.signOut() } }
+        }
     }
 }
 
@@ -727,7 +754,7 @@ struct AboutView: View {
                     .accessibilityLabel("Papir app icon")
             }
             VStack(spacing: 4) {
-                Text("Papir").font(.title.weight(.semibold))
+                Text("papir").font(.system(size: 30, weight: .semibold, design: .serif))
                 Text("Version \(version)").font(.caption).foregroundStyle(PapirTheme.ivory.opacity(0.72))
             }
             Text("Created by Benjamin M. Duivesteyn").font(.headline)
@@ -768,16 +795,30 @@ struct PapirMainView: View {
         max(360, (NSScreen.main?.visibleFrame.height ?? 800) - 80)
     }
     var body: some View {
-        ScrollView {
-            ContentView()
-                .fixedSize(horizontal: false, vertical: true)
-                .background {
-                    GeometryReader { geometry in
-                        Color.clear.preference(key: ContentHeightKey.self, value: geometry.size.height)
+        VStack(spacing: 0) {
+            ZStack {
+                Text("papir")
+                    .font(.system(size: 24, weight: .semibold, design: .serif))
+                    .frame(maxWidth: .infinity)
+                HStack {
+                    Spacer()
+                    SettingsLink { Image(systemName: "slider.horizontal.3") }.help("Settings")
+                        .buttonStyle(.plain)
+                }.padding(.trailing, 24)
+            }
+            .frame(height: 32)
+            .offset(y: -28)
+            ScrollView {
+                ContentView()
+                    .fixedSize(horizontal: false, vertical: true)
+                    .background {
+                        GeometryReader { geometry in
+                            Color.clear.preference(key: ContentHeightKey.self, value: geometry.size.height)
+                        }
                     }
-                }
+            }
         }
-        .frame(width: 390, height: min(contentHeight, maximumHeight))
+        .frame(width: 380, height: min(contentHeight + 32, maximumHeight))
         .onPreferenceChange(ContentHeightKey.self) { height in
             if height > 0 { contentHeight = ceil(height) }
         }
@@ -804,6 +845,6 @@ struct PapirMainView: View {
                 .background(PapirTheme.green.ignoresSafeArea())
                 .background(PapirWindowStyle())
                 .preferredColorScheme(.dark)
-        }
+        }.windowStyle(.hiddenTitleBar)
     }
 }
