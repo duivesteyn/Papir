@@ -90,6 +90,7 @@ The CLI's only artwork is 📤/✅ in terminal output.
 
 # Changelog
 
+- v1.0 2026-10-17 Stable 1.0. Python package `papir-kindle` (`pip install papir-kindle`, CLI stays `papir`), Mac app + CLI.
 - v0.2.2 2026-10-06 Forest-green native title bars across app windows.
 
 - v0.2.0 2026-10-06 Self-contained native Mac app, browser sign-in/preferences, JSON desktop bridge, shared library-only default fix, consolidated planning/art and release builds.
@@ -97,9 +98,14 @@ The CLI's only artwork is 📤/✅ in terminal output.
 - v0.1.1 2026-10-06 Native-PDF fix: dropped stkclient's invented `outputFormat=MOBI`/`deliveryMechanism` (backend converted PDFs), send `forceConvert:false` like the official app. Added `--convert` opt-in.
 - v0.1.0 2026-10-06 Initial revision. login/devices/send/logout/doctor, correct Author+Title via DocumentMetadata.
 
-# Notes for uploading to pypi
+# Python package
 
-- `python -m build && twine upload dist/*`
+```bash
+pip install papir-kindle
+papir --help
+```
+
+Releases: pushing tag `v*` runs `.github/workflows/pypi.yml` — offline tests, `python -m build`, Trusted Publishing to PyPI as `papir-kindle`, then attaches `dist/*` to the GitHub Release. First publish needs a PyPI Trusted Publisher for this repo + workflow.
 
 # Inspirations
 

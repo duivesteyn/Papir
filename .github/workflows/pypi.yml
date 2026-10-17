@@ -1,0 +1,78 @@
+name: Publish Python package
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing tag to publish (e.g. v1.0). Leave empty to publish current version.'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+          fetch-tags: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Resolve version from tag
+        id: version
+        run: |
+          python3 - <<'PY'
+          import os, tomllib
+          with open('pyproject.toml', 'rb') as f:
+              project_version = tomllib.load(f)['project']['version']
+          tag = os.environ.get('INPUT_TAG') or os.environ.get('GITHUB_REF_NAME', '')
+          tag_version = tag[1:] if tag.startswith('v') else tag
+          print(f"pyproject version: {project_version}")
+          print(f"tag: {tag} -> version: {tag_version}")
+          if tag and tag_version != project_version:
+              raise SystemExit(f"Tag {tag} does not match pyproject version {project_version}")
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as out:
+              out.write(f"version={project_version}\n")
+              out.write(f"tag={tag}\n")
+          PY
+        env:
+          INPUT_TAG: ${{ inputs.tag }}
+      - name: Offline tests
+        run: |
+          python3 -m pip install .
+          python3 test.py
+          python3 -m unittest discover -s macos/tests -v
+      - name: Build sdist + wheel
+        run: |
+          python3 -m pip install --upgrade build
+          python3 -m build
+          ls -lh dist/
+      - name: Publish to PyPI (Trusted Publishing)
+        uses: pypa/gh-action-pypi-publish@release/v1
+      - name: Attach dist to GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          TAG="${{ steps.version.outputs.tag }}"
+          if [ -z "$TAG" ]; then
+            echo "No tag (manual run without tag?) — skipping GitHub Release upload."
+            exit 0
+          fi
+          # Mac release workflow may still be building; wait up to ~20 min for release to exist.
+          for i in $(seq 1 40); do
+            if gh release view "$TAG" >/dev/null 2>&1; then
+              break
+            fi
+            echo "Waiting for GitHub Release $TAG to exist (attempt $i/40)..."
+            sleep 30
+          done
+          gh release upload "$TAG" dist/* --clobber

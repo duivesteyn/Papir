@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "papir-kindle"
+version = "1.0"
+description = "Beam reading material to your e-reader via API, with correct Author + Title."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "Benjamin M. Duivesteyn", email = "duivesteyn@gmail.com" }]
+keywords = ["kindle", "e-reader", "send-to-kindle", "epub", "pdf"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: MIT License",
+  "Environment :: Console",
+  "Topic :: Utilities",
+]
+dependencies = ["requests"]
+urls = { Homepage = "https://github.com/duivesteyn/Papir" }
+
+[project.scripts]
+papir = "papir.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["papir*"]
