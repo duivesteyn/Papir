@@ -72,6 +72,11 @@ jobs:
           GH_REPO: ${{ github.repository }}
           PAPIR_TAG: ${{ github.ref_name }}
         run: |
+          if [[ "$PAPIR_TAG" == *-* || "$PAPIR_TAG" == *beta* || "$PAPIR_TAG" == *rc* || "$PAPIR_TAG" == *alpha* ]]; then
+            PRERELEASE_FLAG="--prerelease"
+          else
+            PRERELEASE_FLAG="--latest"
+          fi
           gh release create "$PAPIR_TAG" release-assets/* \
             --verify-tag --title "Papir $PAPIR_TAG" \
-            --notes-file macos/RELEASE-NOTES.md --prerelease
+            --notes-file macos/RELEASE-NOTES.md $PRERELEASE_FLAG

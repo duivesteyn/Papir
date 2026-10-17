@@ -1,5 +1,5 @@
 Papir is a lightweight, open-source, unintrusive way to send reading documents to
-Kindle, created by Benjamin M. Duivesteyn. This early release includes the Python
+Kindle, created by Benjamin M. Duivesteyn. This 1.0 stable release includes the Python
 CLI and a native, on-demand Mac app using the same engine.
 
 - Deep forest-green window and native title bar, file drop/staging, title and author edits.
