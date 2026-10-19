@@ -20,9 +20,6 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ inputs.tag || github.ref }}
-          fetch-tags: true
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -33,15 +30,24 @@ jobs:
           import os, tomllib
           with open('pyproject.toml', 'rb') as f:
               project_version = tomllib.load(f)['project']['version']
-          tag = os.environ.get('INPUT_TAG') or os.environ.get('GITHUB_REF_NAME', '')
-          tag_version = tag[1:] if tag.startswith('v') else tag
+          input_tag = os.environ.get('INPUT_TAG', '').strip()
+          ref_name = os.environ.get('GITHUB_REF_NAME', '')
+          # Release tag to upload to: explicit input first, then push-tag ref.
+          if input_tag:
+              release_tag = input_tag
+          elif ref_name.startswith('v'):
+              release_tag = ref_name
+          else:
+              release_tag = ''
           print(f"pyproject version: {project_version}")
-          print(f"tag: {tag} -> version: {tag_version}")
-          if tag and tag_version != project_version:
-              raise SystemExit(f"Tag {tag} does not match pyproject version {project_version}")
+          print(f"input_tag: {input_tag} ref: {ref_name} -> release_tag: {release_tag}")
+          if release_tag:
+              tag_version = release_tag[1:] if release_tag.startswith('v') else release_tag
+              if tag_version != project_version:
+                  raise SystemExit(f"Tag {release_tag} does not match pyproject version {project_version}")
           with open(os.environ['GITHUB_OUTPUT'], 'a') as out:
               out.write(f"version={project_version}\n")
-              out.write(f"tag={tag}\n")
+              out.write(f"tag={release_tag}\n")
           PY
         env:
           INPUT_TAG: ${{ inputs.tag }}
