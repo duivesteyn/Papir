@@ -3,9 +3,21 @@ import AppKit
 import UniformTypeIdentifiers
 
 @MainActor final class AppDelegate: NSObject, NSApplicationDelegate {
-    static weak var sender: Sender?
+    static weak var sender: Sender? {
+        didSet {
+            sender?.add(pendingURLs)
+            pendingURLs = []
+        }
+    }
+    private static var pendingURLs: [URL] = []
     func application(_ sender: NSApplication, open urls: [URL]) {
-        Self.sender?.add(urls)
+        if let model = Self.sender { model.add(urls) }
+        else { Self.pendingURLs.append(contentsOf: urls) }
+        sender.activate(ignoringOtherApps: true)
+        if let window = sender.windows.first(where: { $0.identifier?.rawValue == "main" }) {
+            window.deminiaturize(nil)
+            window.makeKeyAndOrderFront(nil)
+        }
     }
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         guard Self.sender?.busy == true || Self.sender?.authBusy == true else { return .terminateNow }
@@ -39,7 +51,8 @@ struct SendResult: Identifiable {
     @Published private(set) var sendTotal = 0
     @Published private(set) var sendCompleted = 0
     @Published private(set) var sendingFilename = ""
-    var sendProgressText: String { "Sending \(min(sendCompleted + 1, sendTotal))/\(sendTotal) \(sendTotal == 1 ? "document" : "documents")" }
+    @Published private(set) var preflighting = false
+    var sendProgressText: String { preflighting ? "Checking authentication…" : "Sending \(min(sendCompleted + 1, sendTotal))/\(sendTotal) \(sendTotal == 1 ? "document" : "documents")" }
     @Published private var deviceError = false
     private var deviceRequest = UUID()
 
@@ -196,7 +209,7 @@ struct SendResult: Identifiable {
         let previousAuthor = defaultAuthor
         let previousDestination = defaultDestination
         let previousAccount = accountName
-        checkingAccount = true
+        checkingAccount = !hasCachedSettings
         defer { checkingAccountInFlight = false }
         defer { checkingAccount = false }
         do {
@@ -210,9 +223,6 @@ struct SendResult: Identifiable {
                 if let editedDestination { defaultDestination = editedDestination }
             }
             checkingAccount = false
-            if signedIn && (destinationsRefreshedAt.map { Date().timeIntervalSince($0) >= 86400 } ?? true) {
-                await refreshDevices()
-            }
         } catch { authError = error.localizedDescription }
     }
     func beginSignIn() async {
@@ -266,6 +276,7 @@ struct SendResult: Identifiable {
             accountName = cache.accountName; defaultAuthor = cache.author
             defaultDestination = cache.destination; defaultTarget = cache.destination
             hasCachedSettings = true
+            signedIn = true; checkingAccount = false
         }
         lastDestinationName = UserDefaults.standard.string(forKey: destinationNameKey) ?? ""
         if let data = UserDefaults.standard.data(forKey: destinationCacheKey),
@@ -355,15 +366,33 @@ struct SendResult: Identifiable {
         sendCompleted = 0
         sendingFilename = pending[0].lastPathComponent
         busy = true
+        preflighting = true
+        status = "Checking authentication…"
+        // Capture this batch's options before the first suspension.
+        let batchTitle = title, batchAuthor = author, batchTarget = target, batchConvert = convert
         Task {
+            defer { preflighting = false; busy = false }
+            do {
+                let reply = try await bridge(["action": "preflight"])
+                applyAccount(reply)
+                guard signedIn else {
+                    status = "Sign in to send your documents."
+                    return
+                }
+            } catch {
+                status = "Authentication check failed. Your documents are ready to retry."
+                failures = [SendResult(name: "Before sending", success: false, message: error.localizedDescription)]
+                return
+            }
+            preflighting = false
             for file in pending {
                 sendingFilename = file.lastPathComponent
                 status = "Sending \(file.lastPathComponent)…"
                 var args = ["send", file.path]
-                if pending.count == 1 && !title.isEmpty { args += ["--title", title] }
-                if !author.isEmpty { args += ["--author", author] }
-                if !target.isEmpty { args += ["--to", target] }
-                if convert { args.append("--convert") }
+                if pending.count == 1 && !batchTitle.isEmpty { args += ["--title", batchTitle] }
+                if !batchAuthor.isEmpty { args += ["--author", batchAuthor] }
+                if !batchTarget.isEmpty { args += ["--to", batchTarget] }
+                if batchConvert { args.append("--convert") }
                 do {
                     let result = try await run(args)
                     if result.0 { files.removeAll { $0 == file } }
@@ -373,7 +402,6 @@ struct SendResult: Identifiable {
                 }
                 sendCompleted += 1
             }
-            busy = false
             showSuccess = failures.isEmpty
             status = files.isEmpty ? "Accepted by service · Device delivery pending" : "Some documents need attention. Review the errors and retry."
         }
@@ -526,10 +554,10 @@ struct ContentView: View {
                     Toggle("Convert PDF to Kindle format", isOn: $sender.convert).font(.subheadline)
                     Button(action: sender.send) {
                         HStack(spacing: 8) {
-                            if sender.busy || sender.checkingAccount || sender.loadingDevices || sender.pendingDrops > 0 {
+                            if sender.busy || sender.checkingAccount || sender.pendingDrops > 0 {
                                 ProgressView().controlSize(.small).tint(green)
                             }
-                            Text(sender.busy ? sender.sendProgressText : sender.checkingAccount ? "Checking account…" : "Send \(sender.files.count == 1 ? "document" : "documents")")
+                            Text(sender.busy ? sender.sendProgressText : sender.checkingAccount ? "Checking account…" : "Send \(sender.files.count == 1 ? "Document" : "Documents")")
                         }.frame(maxWidth: .infinity)
                     }.buttonStyle(PapirSendButtonStyle())
                         .disabled(sender.checkingAccount || !sender.signedIn || sender.authBusy || sender.pendingDrops > 0)

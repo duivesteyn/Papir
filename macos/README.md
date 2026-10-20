@@ -57,7 +57,13 @@ remain for retry; successful batches show an animated green tick and Success con
 errors from the current batch are displayed; there is no recent sends list. Account display details and saved author/destination defaults are cached for
 immediate Settings display while account status refreshes. Only confirmed saved
 defaults are cached; edits remain drafts until Save Defaults succeeds.
-Device names and the destination are cached between launches, refreshed daily or
+Drop documents onto the Dock/Finder app icon or into the window, then click
+Send Document. Icon drops restore the minimised window and are queued during
+launch. Saved setup makes Send available immediately; clicking it runs the same
+signed live authentication probe as `doctor --live` before uploading any files.
+Failed checks keep documents ready to retry. You can minimise the window while
+the check and send continue. Missing credentials show sign-in in the same window.
+Device names and the destination are cached between launches, refreshed
 with the refresh button, and cleared on sign-out. The window fits its content on launch and after sending, with scrolling only
 when the content exceeds the available screen height. Sending shows a large animated
 document indicator, the current filename and an X/Y document count. The batch

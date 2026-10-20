@@ -15,7 +15,7 @@ PYINSTALLER_CONFIG_DIR="$PAPIR_MAC_ROOT/build/pyinstaller-cache" "$PAPIR_BUILD_P
     --workpath "$PAPIR_MAC_ROOT/build/engine-work" --specpath "$PAPIR_MAC_ROOT/build" \
     "$PAPIR_MAC_ROOT/engine.py"
 mkdir -p "$PAPIR_APP/Contents/MacOS" "$PAPIR_APP/Contents/Resources" "$PAPIR_APP/Contents/Helpers"
-xcrun swiftc -module-cache-path "$PAPIR_MAC_ROOT/build/ModuleCache" -parse-as-library -swift-version 5 \
+xcrun swiftc -O -module-cache-path "$PAPIR_MAC_ROOT/build/ModuleCache" -parse-as-library -swift-version 5 \
     -target "$(uname -m)-apple-macosx14.0" "$PAPIR_MAC_ROOT/Sources/PapirApp.swift" -o "$PAPIR_APP/Contents/MacOS/Papir"
 # Replace only generated runtime output; never include credentials or project data.
 if [ -d "$PAPIR_APP/Contents/Helpers/papir-engine" ]; then

@@ -34,6 +34,32 @@ class DesktopTests(unittest.TestCase):
         self.assertEqual(reply["default_author"], "New writer")
         self.assertEqual(self.path.stat().st_mode & 0o777, 0o600)
 
+    def test_preflight_checks_live_auth_and_preserves_saved_defaults(self):
+        save_client({"account_name": "Reader"}, default_target="library", default_author="Writer")
+        with patch.object(desktop, "papirDevices", return_value=[]) as probe:
+            reply = desktop.dispatch({"action": "preflight"})
+        probe.assert_called_once_with()
+        self.assertTrue(reply["signed_in"])
+        self.assertEqual(reply["default_target"], "library")
+        self.assertEqual(reply["default_author"], "Writer")
+
+    def test_preflight_without_credentials_requires_sign_in(self):
+        with patch.object(desktop, "papirDevices") as probe:
+            self.assertEqual(desktop.dispatch({"action": "preflight"}), {"signed_in": False})
+        probe.assert_not_called()
+
+    def test_preflight_failure_is_safe_and_keeps_credentials(self):
+        save_client({"account_name": "Reader"})
+        with patch.object(desktop, "papirDevices", side_effect=ValueError("TOKEN SECRET")), patch("sys.stdin", io.StringIO('{"action":"preflight"}')):
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output):
+                self.assertEqual(desktop.main(), 1)
+        reply = json.loads(output.getvalue())
+        self.assertFalse(reply["ok"])
+        self.assertNotIn("SECRET", output.getvalue())
+        self.assertIn("retry", reply["error"])
+        self.assertTrue(self.path.exists())
+
     def test_library_default_resolves_to_cloud_only(self):
         save_client({"account_name": "Reader"}, default_target="library")
         with patch.object(desktop.api, "get_owned_devices") as devices:

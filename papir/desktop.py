@@ -30,6 +30,13 @@ def dispatch(request):
         return {"signed_in": True, "account_name": info.get("account_name", ""),
                 "default_author": get_default_author() or "",
                 "default_target": get_default_target() or "all"}
+    if action == "preflight":
+        # The signed device request is the same live probe as `doctor --live`.
+        # A connection/auth failure must stop the batch before any upload.
+        status = dispatch({"action": "status"})
+        if status["signed_in"]:
+            papirDevices()
+        return status
     if action == "login_begin":
         verifier = new_verifier()
         return {"url": api.get_signin_url(verifier), "verifier": verifier}
@@ -78,6 +85,7 @@ def main():
         # Do not return token exchange bodies, pasted URLs, or registration data.
         message = {
             "login_finish": "Sign-in failed. Start again with a fresh browser sign-in and paste its complete final URL or code.",
+            "preflight": "Could not verify your Amazon connection. Check your internet connection and retry. If your sign-in has expired, sign out and reconnect in Settings.",
             "devices": "Could not load devices. Try refreshing in a moment.",
             "logout": "Could not sign out. Try again.",
             "defaults": "Could not save preferences. Check that you are signed in.",
