@@ -53,6 +53,9 @@ if sys.argv[1:] == ['--desktop']:
         precondition(sender.files == [file] && sender.sendCompleted == 0 && !sender.failures.isEmpty)
         try await run("success")
         precondition(sender.files.isEmpty && sender.showSuccess && sender.sendCompleted == 1)
+        sender.title = "Old title"; sender.author = "Old writer"; sender.convert = true
+        sender.resetForNextBatch()
+        precondition(!sender.showSuccess && sender.files.isEmpty && sender.title.isEmpty && sender.author.isEmpty && !sender.convert && sender.status == "Ready when you are")
         let calls = try String(contentsOf: folder.appendingPathComponent("calls"), encoding: .utf8)
         let expected = "[\"--desktop\"]\n[\"--desktop\"]\n[\"send\", \"" + file.path + "\"]\n"
         precondition(calls == expected, "Uploads must follow a successful preflight and reuse engine defaults")

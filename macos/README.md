@@ -53,8 +53,10 @@ The GUI sends argument arrays without a shell. Credentials live in the existing
 CLI file, not the distributable app. Settings can select an external compatible
 engine for development; the bundle is used again on next launch. Title override
 is available for one document; author applies to the selected batch. Failed files
-remain for retry; successful batches show an animated green tick and Success confirmation. Only
-errors from the current batch are displayed; there is no recent sends list. Account display details and saved author/destination defaults are cached for
+remain for retry; successful batches show an animated green tick and Success confirmation.
+Reset for Next Set clears the finished batch and its title/author/convert options and
+returns to the drop zone, while Add Documents… starts a fresh selection immediately.
+Only errors from the current batch are displayed; there is no recent sends list. Account display details and saved author/destination defaults are cached for
 immediate Settings display while account status refreshes. Only confirmed saved
 defaults are cached; edits remain drafts until Save Defaults succeeds.
 Drop documents onto the Dock/Finder app icon or into the window, then click

@@ -299,6 +299,7 @@ struct SendResult: Identifiable {
         while let id = intakeOrder.first, let batch = intakeBatches[id], batch.remaining == 0 {
             intakeOrder.removeFirst()
             intakeBatches.removeValue(forKey: id)
+            if showSuccess { title = "" }
             showSuccess = false
             status = batch.failed ? "Could not read a dropped document. Try Choose Documents…" : "Ready when you are"
             let sorted = batch.urls.filter { $0.isFileURL }.sorted {
@@ -352,6 +353,19 @@ struct SendResult: Identifiable {
             executable = url.path
             Task { await bootstrap() }
         }
+    }
+    func resetForNextBatch() {
+        guard !busy, !authBusy, pendingDrops == 0 else { return }
+        files = []
+        title = ""
+        author = ""
+        convert = false
+        failures = []
+        showSuccess = false
+        sendTotal = 0
+        sendCompleted = 0
+        sendingFilename = ""
+        status = "Ready when you are"
     }
     func send() {
         guard !checkingAccount, !busy, !authBusy, pendingDrops == 0, signedIn, !files.isEmpty else { return }
@@ -653,7 +667,16 @@ struct SendSuccessView: View {
             Text("Success").font(.title3.weight(.semibold))
             Text("Accepted by service · Device delivery pending")
                 .font(.caption).foregroundStyle(PapirTheme.ivory.opacity(0.72))
-            Button("Send more documents…", action: sender.chooseFiles)
+            VStack(spacing: 8) {
+                Button("Reset for Next Set", action: sender.resetForNextBatch)
+                    .buttonStyle(PapirSendButtonStyle())
+                    .help("Clear this batch and return to the drop zone")
+                Button("Add Documents…", action: sender.chooseFiles)
+                    .buttonStyle(.plain)
+                    .font(.subheadline)
+                    .foregroundStyle(PapirTheme.ivory.opacity(0.72))
+            }
+            .padding(.top, 4)
         }
         .frame(maxWidth: .infinity).padding(24)
         .accessibilityElement(children: .contain)
