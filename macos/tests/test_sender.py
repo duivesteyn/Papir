@@ -1,12 +1,18 @@
 """Exercise the real Swift sender against an isolated, simulated engine."""
 import pathlib
+import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 
 
+@unittest.skipUnless(
+    sys.platform == "darwin" and shutil.which("xcrun"),
+    "requires macOS with the Swift toolchain",
+)
 class SenderTests(unittest.TestCase):
     def test_preflight_gates_upload_and_retry_preserves_documents(self):
         with tempfile.TemporaryDirectory() as directory:
