@@ -667,18 +667,17 @@ struct SendSuccessView: View {
             Text("Success").font(.title3.weight(.semibold))
             Text("Accepted by service · Device delivery pending")
                 .font(.caption).foregroundStyle(PapirTheme.ivory.opacity(0.72))
-            VStack(spacing: 8) {
-                Button("Reset for Next Set", action: sender.resetForNextBatch)
-                    .buttonStyle(PapirSendButtonStyle())
-                    .help("Clear this batch and return to the drop zone")
-                Button("Add Documents…", action: sender.chooseFiles)
-                    .buttonStyle(.plain)
-                    .font(.subheadline)
-                    .foregroundStyle(PapirTheme.ivory.opacity(0.72))
+            Button(action: sender.resetForNextBatch) {
+                HStack(spacing: 8) {
+                    Text("Send More Documents…")
+                }.frame(maxWidth: .infinity)
             }
+            .buttonStyle(PapirSendButtonStyle())
+            .frame(maxWidth: .infinity)
+            .help("Clear this batch and return to the drop zone")
             .padding(.top, 4)
         }
-        .frame(maxWidth: .infinity).padding(24)
+        .frame(maxWidth: .infinity).padding(.vertical, 24)
         .accessibilityElement(children: .contain)
         .onAppear {
             appeared = true
