@@ -78,6 +78,9 @@ no orange, no smile arrows, no "Kindle" wordmark anywhere near the art.
 ## 8. README / web / PyPI
 
 - Header: icon (128 px) → `# Papir` → one-line pitch → CLI and native Mac companion callout.
+- Hero: `_screenshots/Papir-hero.png` (1200 × 920, a 2× window capture on warm
+  ivory) shows the current Mac window. Refresh it whenever the app's empty state
+  or chrome changes; keep the capture free of credentials and personal documents.
 - Screenshots of terminal output: dark terminal, SF Mono or equivalent,
   16 px minimum capture height for the bar frames; always show the 100% frame
   (the bar guarantees it renders — see progress spec).
