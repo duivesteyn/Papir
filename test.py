@@ -32,12 +32,28 @@ def test_format_map():
     assert _format_for("a.pdf") == "PDF"
     assert _format_for("a.EPUB") == "EPUB"
     assert _format_for("a.jpg") == "JPEG"
+    # markdown has no Amazon intake; the marker says "convert to HTML first"
+    assert _format_for("a.md") == "MD"
+    assert _format_for("a.Markdown") == "MD"
     try:
         _format_for("a.zip")
         raise AssertionError("should have raised for .zip")
     except ValueError:
         pass
     print("format map OK")
+
+
+def test_markdown_document():
+    from papir.markdown import document, to_html
+    html = to_html("# Title\n\n**bold** and `code`\n\n- one\n- [x] two")
+    assert "<h1>Title</h1>" in html
+    assert "<strong>bold</strong>" in html and "<code>code</code>" in html
+    assert "<li>one</li>" in html and "\u2611 two" in html
+    assert "&lt;" not in to_html("plain words")
+    page = document(html, "Title & Co")
+    assert page.startswith("<!DOCTYPE html>") and '<meta charset="utf-8">' in page
+    assert "<title>Title &amp; Co</title>" in page
+    print("markdown document OK")
 
 
 def test_serial():
@@ -194,6 +210,7 @@ def test_live():
 
 if __name__ == "__main__":
     test_format_map()
+    test_markdown_document()
     test_serial()
     test_picker_input()
     test_progress()

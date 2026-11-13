@@ -24,6 +24,7 @@ except ImportError:
     pass
 
 from papir import api
+from papir import intake
 from papir import pick
 from papir import progress
 from papir.papir import (
@@ -43,7 +44,10 @@ from papir.papir import (
     save_client,
     set_default_author,
     set_default_target,
+    SUPPORTED,
+    UnsupportedType,
 )
+from papir.markdown import EXTENSIONS as MARKDOWN_EXTENSIONS
 
 
 def pick_default_device(devices, path):
@@ -253,6 +257,23 @@ def cmd_doctor(args):
     raise SystemExit(0 if ok else 1)
 
 
+def cmd_share(args):
+    url = (args.url or sys.stdin.read()).strip()
+    try:
+        link = intake.app_link(intake.validate(url))
+    except ValueError as error:
+        print(f"papir: {error}", file=sys.stderr)
+        raise SystemExit(2)
+    if not intake.open_in_app(link):
+        print("papir: could not open Papir — is the app installed?", file=sys.stderr)
+        raise SystemExit(1)
+    print("Handed to Papir for review.")
+
+
+def cmd_serve(args):
+    intake.serve(args.host, args.port, quiet=args.quiet)
+
+
 def build_parser():
     ap = argparse.ArgumentParser(
         prog="papir",
@@ -301,6 +322,16 @@ def build_parser():
     p = sub.add_parser("logout", help="disown device + delete local creds")
     p.set_defaults(func=cmd_logout)
 
+    p = sub.add_parser("share", help="open a link in Papir's review window (no browser button needed)")
+    p.add_argument("url", nargs="?", help="http(s) link; reads stdin when omitted")
+    p.set_defaults(func=cmd_share)
+
+    p = sub.add_parser("serve", help="local receiver for a browser button (runs until stopped)")
+    p.add_argument("--port", type=int, default=intake.DEFAULT_PORT)
+    p.add_argument("--host", default="127.0.0.1", help="loopback only by default")
+    p.add_argument("--quiet", action="store_true", help="log nothing")
+    p.set_defaults(func=cmd_serve)
+
     p = sub.add_parser("doctor", help="self-test")
     p.add_argument("--live", action="store_true", help="also hit Amazon APIs")
     p.add_argument("--offline", action="store_true")
@@ -313,7 +344,7 @@ def main(argv=None):
         argv = sys.argv[1:]
     # shorthand: `papir document.pdf --title X --author Y` == `papir send document.pdf ...`
     # (must rewrite BEFORE parse_args, or argparse rejects the filename as a bad subcommand)
-    cmds = {"login", "devices", "set-default", "send", "logout", "doctor"}
+    cmds = {"login", "devices", "set-default", "send", "logout", "doctor", "serve", "share"}
     if "--set-default" not in argv and not any(t in cmds for t in argv):
         # pull out a global --client VALUE so flag order never breaks the rewrite
         client_val = None
@@ -349,6 +380,13 @@ def main(argv=None):
         args.func(args)
     except api.APIError as e:
         _amazon_error(e)
+    except (FileNotFoundError, ValueError) as e:
+        # Expected problems (missing file, unknown extension) get one line, not a traceback.
+        print(f"papir: {e}", file=sys.stderr)
+        if isinstance(e, UnsupportedType):
+            kinds = " ".join(sorted(SUPPORTED) + sorted(MARKDOWN_EXTENSIONS)).upper()
+            print(f"Accepted: {kinds}", file=sys.stderr)
+        raise SystemExit(1)
 
 
 def _amazon_error(e):

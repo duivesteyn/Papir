@@ -127,6 +127,64 @@ struct SendResult: Identifiable {
         } catch { if deviceRequest == request { deviceError = true } }
     }
     @Published var convert = false
+    @Published var intakeEnabled = Intake.isEnabled
+    @Published private(set) var intakeToken = Intake.loadConfig().token ?? ""
+    @Published private(set) var intakeRunning = false
+    let intakePort: UInt16 = 47821
+    private var intakeServer: IntakeServer?
+    var intakeEndpoint: String { "http://127.0.0.1:\(intakePort)" }
+
+    func setIntakeEnabled(_ enabled: Bool) {
+        intakeEnabled = enabled
+        Intake.setEnabled(enabled)
+        if enabled { startIntakeServer() } else { stopIntakeServer() }
+    }
+
+    /// The receiver runs inside the app, so enabling the feature is the whole setup.
+    func startIntakeServer() {
+        guard Intake.isEnabled, intakeServer == nil else { return }
+        let token = Intake.ensureToken()
+        intakeToken = token
+        let server = IntakeServer(token: token, port: intakePort) { [weak self] url, title in
+            guard let self else { return .error(500, "Papir is closing.") }
+            return await self.handleRemote(url, title: title)
+        }
+        do {
+            try server.start { [weak self] state in
+                Task { @MainActor in
+                    guard let self else { return }
+                    switch state {
+                    case .ready:
+                        self.intakeRunning = true
+                        self.status = "Ready when you are"
+                    case .failed:
+                        self.intakeRunning = false
+                        self.status = "Port \(self.intakePort) is busy — quit `papir serve` if it is running."
+                    default:
+                        break
+                    }
+                }
+            }
+            intakeServer = server
+        } catch {
+            status = "Could not start the browser receiver."
+        }
+    }
+
+    /// Hands the token to the extension through a loopback page. The token rides
+    /// in the URL fragment, which browsers never send to the server.
+    func connectBrowser() {
+        let token = Intake.ensureToken()
+        intakeToken = token
+        guard let url = URL(string: "http://127.0.0.1:\(intakePort)/pair#\(token)") else { return }
+        NSWorkspace.shared.open(url)
+    }
+
+    func stopIntakeServer() {
+        intakeServer?.stop()
+        intakeServer = nil
+        intakeRunning = false
+    }
     @Published var busy = false
     @Published var failures: [SendResult] = []
     @Published var showSuccess = false
@@ -279,6 +337,7 @@ struct SendResult: Identifiable {
             signedIn = true; checkingAccount = false
         }
         lastDestinationName = UserDefaults.standard.string(forKey: destinationNameKey) ?? ""
+        if intakeEnabled { startIntakeServer() }
         if let data = UserDefaults.standard.data(forKey: destinationCacheKey),
            let cache = try? JSONDecoder().decode(DestinationCache.self, from: data) {
             devices = cache.devices; defaultTarget = cache.defaultTarget
@@ -309,12 +368,99 @@ struct SendResult: Identifiable {
             for url in sorted where !files.contains(url) { files.append(url) }
         }
     }
+    private var recentLinks: [String: Date] = [:]
+    private var authorFromIntake = false
+
     func add(_ urls: [URL]) {
-        guard !busy else { return }
+        // A scheme open can arrive through both the app delegate and onOpenURL.
+        let now = Date()
+        recentLinks = recentLinks.filter { now.timeIntervalSince($0.value) < 10 }
+        let links = urls.filter { url in
+            guard url.scheme?.lowercased() == "papir" else { return false }
+            let key = url.absoluteString
+            if let seen = recentLinks[key], now.timeIntervalSince(seen) < 10 { return false }
+            recentLinks[key] = now
+            return true
+        }
+        let documents = urls.filter { $0.scheme?.lowercased() != "papir" }
+        if !links.isEmpty { Task { for link in links { await handleIntake(link) } } }
+        guard !documents.isEmpty, !busy else { return }
+        // A dropped document shouldn't inherit the last shared site as its author.
+        if authorFromIntake { author = ""; authorFromIntake = false }
         let id = UUID()
         intakeOrder.append(id)
-        intakeBatches[id] = IntakeBatch(remaining: 0, urls: urls)
+        intakeBatches[id] = IntakeBatch(remaining: 0, urls: documents)
         flushIntake()
+    }
+
+    /// papir://intake?url=… or ?file=… — fetch, then hand off to the normal review view.
+    private func handleIntake(_ link: URL) async {
+        guard Intake.isEnabled else {
+            status = "Share links are off. Turn them on in Settings, under Advanced."
+            showWindow()
+            return
+        }
+        guard let payload = Intake.parse(link) else {
+            status = "That Papir link was not understood."
+            showWindow()
+            return
+        }
+        switch payload.kind {
+        case .local(let path):
+            guard FileManager.default.fileExists(atPath: path.path) else {
+                status = "That document is no longer on disk."
+                showWindow()
+                return
+            }
+            receiveIntake(path, title: payload.title, author: payload.author)
+        case .remote(let remote):
+            _ = await ingest(remote, title: payload.title, author: payload.author)
+        }
+    }
+
+    /// A request from the browser receiver: fetch, then pre-fill the review window.
+    private func handleRemote(_ raw: String, title: String?) async -> IntakeReply {
+        guard Intake.isEnabled else {
+            return .error(409, "papir:// links are off in Papir Settings, under Advanced.")
+        }
+        guard let url = try? IntakeServer.validated(raw) else {
+            return .error(400, "Only http and https links can be sent.")
+        }
+        if let failure = await ingest(url, title: title, author: Intake.siteName(for: url)) {
+            return .error(400, failure.localizedDescription)
+        }
+        return .ok(["handed_to": "Papir"])
+    }
+
+    /// Download into the inbox and pre-fill. Returns the error when it failed.
+    private func ingest(_ remote: URL, title: String?, author: String?) async -> Error? {
+        status = "Fetching \(remote.lastPathComponent)…"
+        do {
+            let file = try await Intake.fetch(remote)
+            receiveIntake(file, title: title, author: author)
+            return nil
+        } catch {
+            status = error.localizedDescription
+            failures = [SendResult(name: "Before sending", success: false, message: error.localizedDescription)]
+            showWindow()
+            return error
+        }
+    }
+
+    private func receiveIntake(_ file: URL, title: String?, author: String?) {
+        showSuccess = false
+        failures = []
+        if !files.contains(file) { files.append(file) }
+        // A shared report is tagged with where it came from, not with your own name.
+        if let author, !author.isEmpty { self.author = author; authorFromIntake = true }
+        if files.count == 1, let title, !title.isEmpty { self.title = title }
+        status = "Ready when you are"
+        showWindow()
+    }
+
+    private func showWindow() {
+        NSApp.activate(ignoringOtherApps: true)
+        NSApp.windows.first { $0.identifier?.rawValue == "main" }?.makeKeyAndOrderFront(nil)
     }
     func acceptDrop(_ providers: [NSItemProvider]) -> Bool {
         guard !busy else { return false }
@@ -359,6 +505,7 @@ struct SendResult: Identifiable {
         files = []
         title = ""
         author = ""
+        authorFromIntake = false
         convert = false
         failures = []
         showSuccess = false
@@ -716,10 +863,54 @@ struct PreferencesView: View {
     @State private var confirmSignOut = false
     private let ivory = PapirTheme.ivory
     var body: some View {
-        ScrollView {
+        ScrollView { content }
+            .frame(width: 460, height: 560)
+            .foregroundStyle(ivory)
+            .textFieldStyle(.roundedBorder)
+            .confirmationDialog("Sign out of Papir? This also signs out the CLI on this Mac.", isPresented: $confirmSignOut) {
+                Button("Sign Out", role: .destructive) { Task { await sender.signOut() } }
+            }
+    }
+
+    /// Split out so the pane can be rendered on its own in tests.
+    var content: some View {
             VStack(alignment: .leading, spacing: 16) {
                 Text("settings")
                     .font(.system(size: 22, weight: .semibold, design: .serif))
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Browser").font(.headline)
+                    Toggle("Accept papir:// links", isOn: Binding(
+                        get: { sender.intakeEnabled },
+                        set: { sender.setIntakeEnabled($0) }
+                    )).tint(ivory)
+                    Text("Off by default. Lets a browser, Shortcut or script hand Papir a document to review before sending.")
+                        .font(.caption).foregroundStyle(ivory.opacity(0.72))
+                        .fixedSize(horizontal: false, vertical: true)
+                    if sender.intakeEnabled {
+                        VStack(alignment: .leading, spacing: 6) {
+                            HStack(spacing: 8) {
+                                Text(sender.intakeEndpoint)
+                                    .font(.system(.caption, design: .monospaced))
+                                    .textSelection(.enabled)
+                                Text(sender.intakeRunning ? "listening" : "not listening")
+                                    .font(.caption2)
+                                    .foregroundStyle(ivory.opacity(0.6))
+                                Spacer()
+                                Button("Connect Browser") { sender.connectBrowser() }
+                                    .buttonStyle(.plain).font(.caption)
+                            }
+                            Text(sender.intakeToken)
+                                .font(.system(.caption2, design: .monospaced))
+                                .foregroundStyle(ivory.opacity(0.72))
+                                .textSelection(.enabled)
+                                .lineLimit(2)
+                                .fixedSize(horizontal: false, vertical: true)
+                        Text("Click Connect Browser, then confirm in the tab that opens.")
+                            .font(.caption2).foregroundStyle(ivory.opacity(0.55))
+                        }
+                        .padding(.top, 2)
+                    }
+                }
                 if sender.showsAccountSettings {
                     VStack(alignment: .leading, spacing: 12) {
                         HStack {
@@ -780,16 +971,12 @@ struct PreferencesView: View {
                         }.padding(.top, 4)
                     }.tint(ivory)
                 }
+                Text("Papir \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "")")
+                    .font(.caption2).foregroundStyle(ivory.opacity(0.4))
+                    .padding(.top, 4)
             }
             .padding(24)
             .frame(maxWidth: .infinity, alignment: .topLeading)
-        }
-        .frame(width: 440, height: 420)
-        .foregroundStyle(ivory)
-        .textFieldStyle(.roundedBorder)
-        .confirmationDialog("Sign out of Papir? This also signs out the CLI on this Mac.", isPresented: $confirmSignOut) {
-            Button("Sign Out", role: .destructive) { Task { await sender.signOut() } }
-        }
     }
 }
 

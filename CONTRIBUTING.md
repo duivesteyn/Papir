@@ -1,14 +1,18 @@
 # Contributing
 
 Small fixes and focused improvements are welcome. The Python CLI and native Mac
-app share one sending engine. Keep protocol logic in `papir/`, UI in `macos/`,
+app share one sending engine; the Android app is a separate Kotlin port of the
+same protocol. Keep protocol logic in `papir/`, UI in `macos/` and `android/`,
 planning in `planning/`, and original artwork in `art/`.
 
 ```sh
 python3 -m pip install .
 python3 test.py
 python3 -m unittest discover -s macos/tests -v
+bash android/tools/test.sh     # after one-time android/tools/bootstrap.sh
 ```
+
+The Android app builds without Gradle; see `android/README.md`.
 
 For a Mac build, run `bash macos/build.sh`, then `bash macos/package.sh` and
 `python3 macos/verify-package.py`. See `macos/README.md` for requirements.

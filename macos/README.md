@@ -12,6 +12,26 @@ and author in Settings, then drop documents and send. Existing CLI credentials
 are reused automatically. Browser sign-in currently requires pasting the final
 redirect URL or authorization code; no Terminal is needed.
 
+## Sending from the browser
+
+Papir also accepts `papir://intake?url=…` links. It is off by default: enable
+**Accept papir:// links** in Settings ▸ Browser, then either install the
+[Send to Papir](../chrome-extension/README.md) button in Chrome (the app serves it
+itself while the setting is on), or hand it a link directly:
+
+```sh
+open "papir://intake?url=https%3A%2F%2Fexample.com%2Freport.pdf"
+```
+
+The document downloads to `~/Library/Application Support/Papir/Inbox/` and opens
+in the usual review window. Nothing is sent until you press Send, and with the
+setting off Papir ignores the link entirely.
+
+Shared documents are tagged with the site they came from — a report from
+`reporting.example.com.au` arrives with the author `example.com.au` rather than
+your own name. Edit the field before sending if you want something else; dropping
+a local file clears it again. Pass `&author=Name` in the link to override it.
+
 ## Build locally
 
 Requires Apple Command Line Tools, Python 3.10+ (compatible with the pinned

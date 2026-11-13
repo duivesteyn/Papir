@@ -89,9 +89,9 @@ class DesktopTests(unittest.TestCase):
         self.assertFalse(json.loads(output.getvalue())["ok"])
 
     def test_devices_only_expose_names_and_serials(self):
-        with patch.object(desktop, "papirDevices", return_value=[{"deviceName": "Scribe", "deviceSerialNumber": "DEVICE", "private": "SECRET"}]):
+        with patch.object(desktop, "papirDevices", return_value=[{"deviceName": "Example Kindle", "deviceSerialNumber": "DEVICE0000", "private": "SECRET"}]):
             reply = desktop.dispatch({"action": "devices"})
-        self.assertEqual(reply["devices"], [{"serial": "DEVICE", "name": "Scribe"}])
+        self.assertEqual(reply["devices"], [{"serial": "DEVICE0000", "name": "Example Kindle"}])
         self.assertNotIn("SECRET", json.dumps(reply))
 
 

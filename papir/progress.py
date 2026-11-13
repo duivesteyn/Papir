@@ -62,6 +62,10 @@ class SendBar:
         )
 
     def __call__(self, sent, total):
+        if total and int(total) != self.total:
+            # Converted files (markdown → HTML) upload at a different size than
+            # the source; trust the size the reader reports so 100% means done.
+            self.total = max(int(total), 1)
         self.sent = sent
         if sent >= self.total:
             if self.tty:

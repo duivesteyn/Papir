@@ -6,7 +6,7 @@
 
 <p align="center">
   <strong>A little less screen time.</strong><br>
-  Beam reading material directly to your e-reader via API — from a native Mac app or a one-line command.
+  Beam reading material directly to your e-reader via API — from a native Mac app, a one-line command, or the Android share sheet.
 </p>
 
 <p align="center">
@@ -17,21 +17,23 @@
 </p>
 
 <p align="center">
-  <img src="_screenshots/Papir-hero.png" width="800" alt="Papir for Mac — a forest-green window with a serif papir header, destination pill for Benjamin's Scribe, and a dashed drop zone reading A little less screen time. Drop something good to read. Choose Documents…">
+  <img src="_screenshots/Papir-hero.png" width="800" alt="Papir for Mac — a forest-green window with a serif papir header, destination pill for a Kindle, and a dashed drop zone reading A little less screen time. Drop something good to read. Choose Documents…">
 </p>
 
-Papir is Norwegian for *paper* — with **API** hidden in the middle. It sends PDFs, EPUBs, Word documents, text, HTML and images to Kindle using the same private service as Amazon's Send to Kindle app.
+Papir is Norwegian for *paper* — with **API** hidden in the middle. It sends PDFs, EPUBs, Word documents, text, HTML, Markdown and images to Kindle using the same private service as Amazon's Send to Kindle app.
 
-> **Python CLI + native Mac companion.**
+> **Python CLI, native Mac app, Android share sheet.**
 > `papir` is the Python CLI. The on-demand SwiftUI `Papir.app` in `macos/` bundles
 > Python and browser sign-in, so Mac users need no Terminal at all.
-> See [Mac setup](macos/README.md).
+> `android/` is a Kotlin app for the phone: share a PDF from any app and it lands
+> on your Kindle. See [Mac setup](macos/README.md) and [Android notes](android/README.md).
 
 **Unofficial.** Not affiliated with Amazon or Kindle. Papir speaks the private protocol used by Amazon's Send to Kindle desktop app (following `stkclient` by Max Johnson, MIT, and `cyrgim/stk`). Amazon can break it without notice — use it on an account you own.
 
 ## Why Papir
 
 - **Native Mac app, zero setup.** The download includes its own Python runtime. Drag documents onto the window, review the batch, and send.
+- **One tap from the share sheet.** The Android app takes a shared PDF straight to Kindle — no email, no app switching.
 - **Correct Author and Title.** Documents arrive with the metadata you chose, not a mangled filename.
 - **Defaults that stick.** Pick a default Kindle and author once; the CLI and Mac app share the same configuration.
 - **Scriptable by design.** `papir send` writes only Amazon's SKU to stdout, so it drops cleanly into scripts and automations.
@@ -47,6 +49,14 @@ Papir is Norwegian for *paper* — with **API** hidden in the middle. It sends P
 4. Choose your default Kindle and author in Settings, drop a document, and send.
 
 The release is ad-hoc signed and **not notarized**, so macOS may ask you to approve it under **System Settings → Privacy & Security → Open Anyway**. [Install notes](macos/INSTALL.md) have the details. The app targets macOS 14+. Early releases are marked as pre-releases while fresh-account/device-delivery and older-OS testing continues.
+
+### Android
+
+1. Build the APK from `android/` (`bash android/tools/build.sh`) and install it over USB with `adb install -r android/build/papir-0.1.2.apk`.
+2. Open Papir, sign in with Amazon (it opens in your browser), and choose your default Kindle.
+3. Share any PDF → **Papir**. A small card confirms the send (and the SKU); failures offer Retry.
+
+Android 8.0+. 0.1.2 is a sideload build — no Play Store listing yet, and no Gradle. Details in [Android notes](android/README.md).
 
 ### Command line
 
@@ -80,9 +90,11 @@ papir logout
 
 ### Supported formats
 
-`PDF` · `EPUB` · `DOC` · `DOCX` · `RTF` · `TXT` · `HTM` / `HTML` · `MOBI` · `AZW` · `JPEG` · `PNG` · `GIF` · `BMP`
+`PDF` · `EPUB` · `DOC` · `DOCX` · `RTF` · `TXT` · `HTM` / `HTML` · `MOBI` · `AZW` · `JPEG` · `PNG` · `GIF` · `BMP` · `MD`
 
 PDFs stay native by default; pass `--convert` (or toggle **Convert PDF to Kindle format** in the app) to let Amazon convert them.
+
+Markdown (`.md`, `.markdown`, `.mdown`, `.mkd`) is rendered to HTML on the way out — Amazon has no markdown intake, and HTML keeps the text reflowable. Headings, lists, links, quotes, fenced code and tables survive the trip; images that live next to the file cannot travel through the converter, so they arrive as their alt text. Drop a `.md` on the app, or run `papir send notes.md`.
 
 ## Python API
 
@@ -116,6 +128,7 @@ Everything for this mini project lives in this repository:
 
 - `papir/`: Python CLI, protocol and shared sending engine.
 - `macos/`: native Mac UI, bundling, verification and packaging.
+- `android/`: Kotlin share-sheet app, protocol port and tests.
 - `planning/`: current plan and retained protocol/package research.
 - `art/`: original icon master, fixed exports, asset catalog and style spec.
 - `.github/workflows/`: offline CI and tagged Mac release builds.
@@ -128,6 +141,9 @@ Folded ivory paper P on forest green (`#123325` / ivory `#F3EADB`). Full spec: [
 
 ## Changelog
 
+- Android 0.1.2 (unreleased) Share feedback card: progress, sent-with-SKU and Retry without opening the notification shade.
+- Android 0.1.1 (unreleased) Browser-first sign-in with share-back/clipboard pickup, paste-friendly in-app fallback, share-sheet sends with SKU/Retry notifications.
+- Android 0.1.0 (unreleased) Share-sheet target, native Kotlin protocol port, foreground sends with SKU/Retry notifications, in-app Amazon sign-in, sideload APK built without Gradle.
 - v1.0 2026-10-17 Stable 1.0. Python package `papir-kindle` (`pip install papir-kindle`, CLI stays `papir`), Mac app + CLI.
 - v0.2.2 2026-10-06 Forest-green native title bars across app windows.
 - v0.2.0 2026-10-06 Self-contained native Mac app, browser sign-in/preferences, JSON desktop bridge, shared library-only default fix, consolidated planning/art and release builds.

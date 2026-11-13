@@ -236,3 +236,6 @@ macos/releases/
 
 # Local reading documents never belong in the public project.
 /*.pdf
+
+# Android build toolchain (SDK, Kotlin compiler) and local signing key
+.tooling/

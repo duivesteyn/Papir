@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Papir</string>
+    <string name="share_target_label">Papir</string>
+    <string name="sign_in_title">Sign in to Amazon</string>
+
+    <string name="tagline">A little less screen time.</string>
+    <string name="status_signed_out">Not signed in</string>
+    <string name="connected_as">Connected as %1$s</string>
+    <string name="connected_as_named">Connected as %1$s · %2$s</string>
+
+    <string name="setup_title">Share a PDF. It lands on Kindle.</string>
+    <string name="setup_body">Papir lives in your share sheet. Pick a document in any app, tap Papir, and it is on its way — no email, no app switching.</string>
+    <string name="sign_in_button">Sign in with Amazon</string>
+    <string name="setup_footnote">Unofficial · not affiliated with Amazon. Credentials stay on this phone.</string>
+
+    <string name="destination_label">Destination</string>
+    <string name="refresh_devices">Refresh devices</string>
+    <string name="devices_empty">No Kindles found on this account.</string>
+    <string name="devices_loading">Looking for your Kindles…</string>
+    <string name="devices_failed">Couldn’t load devices — %1$s</string>
+    <string name="all_devices">All devices</string>
+    <string name="all_devices_hint">Every Kindle and reading app on the account</string>
+
+    <string name="author_label">Author</string>
+    <string name="author_hint">Your name</string>
+    <string name="author_help">Shown on the Kindle’s shelf instead of a mangled filename.</string>
+
+    <string name="convert_title">Convert PDFs</string>
+    <string name="convert_body">Let Amazon reflow PDFs into Kindle format. Off keeps the original page layout.</string>
+
+    <string name="sign_out">Sign out</string>
+    <string name="sign_out_title">Sign out of Papir?</string>
+    <string name="sign_out_body">This removes the device credentials from this phone. You can sign in again at any time.</string>
+    <string name="cancel">Cancel</string>
+
+    <string name="footer">Papir sends through Amazon’s private Send-to-Kindle service.\nNo account server. No telemetry.</string>
+
+    <string name="nothing_to_send">Nothing to send</string>
+    <string name="send_preparing">Preparing…</string>
+    <string name="send_sending">Sending to Kindle</string>
+    <string name="send_sent">Sent to Kindle</string>
+    <string name="send_failed">Couldn’t send</string>
+    <string name="send_done">Done</string>
+    <string name="send_hide">Hide</string>
+    <string name="send_retry">Retry</string>
+    <string name="send_close">Close</string>
+    <string name="send_not_now">Not now</string>
+    <string name="send_sign_in">Sign in</string>
+    <string name="send_sign_in_title">Sign in to send</string>
+    <string name="send_sign_in_body">Papir needs your Amazon sign-in once before it can send.</string>
+    <string name="send_unreadable">Papir couldn’t read that file.</string>
+    <string name="send_sku">SKU %1$s</string>
+    <string name="send_counter">%1$d of %2$d</string>
+    <string name="send_percent">%1$d%%</string>
+    <string name="send_documents">%1$d documents</string>
+    <string name="links_not_supported">Links aren’t documents — save the page as a PDF, then share that.</string>
+    <string name="could_not_read_file">Papir couldn’t read that file</string>
+
+    <string name="login_close">Close</string>
+    <string name="login_hint">Papir never sees your password — only the sign-in code Amazon hands back.</string>
+    <string name="login_paste">Paste a sign-in link</string>
+    <string name="login_browser_title">Finish signing in in your browser</string>
+    <string name="login_browser_body">Amazon opened in your browser. After you sign in it returns to a sendtokindle page: share that page to Papir, or copy its address and come back here — Papir will offer to finish the sign-in.</string>
+    <string name="login_browser_reopen">Open the browser again</string>
+    <string name="login_switch_to_web">Use the in-app page</string>
+    <string name="login_switch_to_browser">Sign in in your browser</string>
+    <string name="login_no_browser">No browser found — using the in-app page</string>
+    <string name="login_clipboard_title">Sign-in link found</string>
+    <string name="login_clipboard_body">Papir found an Amazon sign-in link on the clipboard. Use it to finish signing in?</string>
+    <string name="login_clipboard_use">Finish sign-in</string>
+    <string name="login_not_now">Not now</string>
+    <string name="login_code_missing">That link doesn’t carry an authorization code yet.</string>
+    <string name="login_paste_title">Paste the final address</string>
+    <string name="login_paste_hint">https://www.amazon.com/gp/sendtokindle?…</string>
+    <string name="login_paste_invalid">That doesn’t contain an authorization code.</string>
+    <string name="login_working">Finishing sign-in…</string>
+    <string name="login_success">Signed in — Papir is ready</string>
+    <string name="login_failed">Couldn’t finish sign-in: %1$s</string>
+    <string name="login_retry">Try again</string>
+</resources>

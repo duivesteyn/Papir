@@ -11,6 +11,7 @@ The Mac app provides the same engine in a native, on-demand window.
 
 - Python CLI and shared sending core: `../papir/`.
 - Native SwiftUI app and bundled Python engine: `../macos/`.
+- Android share-sheet app, a Kotlin port of the protocol: `../android/`.
 - Original master, fixed icon exports, asset catalog and style spec: `../art/`.
 - Local generated packages: `../macos/releases/` (ignored by Git).
 - Public downloads: GitHub Releases, built from version tags.

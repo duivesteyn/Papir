@@ -32,6 +32,8 @@ if sys.argv[1:] == ['--desktop']:
 ''')
             engine.chmod(0o700)
             source = (ROOT / 'macos/Sources/PapirApp.swift').read_text().split('@main struct PapirApp: App')[0]
+            source += "\n" + (ROOT / 'macos/Sources/Intake.swift').read_text() + "\n"
+            source += "\n" + (ROOT / 'macos/Sources/IntakeServer.swift').read_text() + "\n"
             source += r'''
 @main struct SenderChecks {
     @MainActor static func main() async throws {
@@ -68,7 +70,16 @@ if sys.argv[1:] == ['--desktop']:
         sender.add([file])
         try await run("missing")
         precondition(!sender.signedIn && sender.files == [file] && sender.sendCompleted == 0)
+        precondition(Intake.siteName(for: URL(string: "https://reporting.example.com.au/wp/x.pdf")!) == "example.com.au")
+        precondition(Intake.siteName(for: URL(string: "https://www.example.com/a.pdf")!) == "example.com")
+        precondition(Intake.siteName(for: URL(string: "https://blog.example.co.uk/a.pdf")!) == "example.co.uk")
+        precondition(Intake.siteName(for: URL(string: "https://example.com/a.pdf")!) == "example.com")
+        precondition(Intake.siteName(for: URL(string: "http://127.0.0.1:8123/a.pdf")!) == "127.0.0.1")
+        precondition(Intake.parse(URL(string: "papir://intake?url=https%3A%2F%2Fwww.example.com%2Fa.pdf")!)?.author == "example.com")
+        precondition(Intake.parse(URL(string: "papir://intake?url=https%3A%2F%2Fx.io%2Fa.pdf&author=Custom")!)?.author == "Custom")
+        precondition(Intake.parse(URL(string: "papir://intake?file=%2Ftmp%2Fa.pdf")!)?.author == nil)
         print("Swift sender preflight, failure, retry, defaults, and missing-login checks passed")
+        print("Intake site-author checks passed")
     }
 }
 '''

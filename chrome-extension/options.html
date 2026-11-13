@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Send to Papir</title>
+  <style>
+    body { margin: 0; padding: 32px; background: #123325; color: #F3EADB;
+           font: 14px/1.5 -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif; }
+    main { max-width: 520px; margin: 0 auto; }
+    h1 { font: 600 22px/1.2 "Iowan Old Style", Georgia, serif; margin: 0 0 4px; }
+    p.lede { color: rgba(243,234,219,.72); margin: 0 0 24px; }
+    label { display: block; font-size: 12px; letter-spacing: .04em; text-transform: uppercase;
+            color: rgba(243,234,219,.72); margin: 18px 0 6px; }
+    input { width: 100%; box-sizing: border-box; padding: 9px 10px; border-radius: 8px;
+            border: 1px solid rgba(243,234,219,.28); background: rgba(243,234,219,.08);
+            color: #F3EADB; font: inherit; }
+    input:focus { outline: 2px solid rgba(243,234,219,.5); outline-offset: 1px; }
+    .row { display: flex; gap: 10px; align-items: center; margin-top: 22px; }
+    button { padding: 9px 16px; border-radius: 8px; border: 1px solid rgba(243,234,219,.35);
+             background: #F3EADB; color: #123325; font: inherit; font-weight: 600; cursor: pointer; }
+    button.ghost { background: transparent; color: #F3EADB; }
+    code { background: rgba(243,234,219,.12); padding: 1px 5px; border-radius: 4px; }
+    #status { margin-top: 16px; min-height: 20px; color: rgba(243,234,219,.85); }
+    #status.bad { color: #ffb4a8; }
+    ol { padding-left: 20px; color: rgba(243,234,219,.8); }
+    li { margin: 6px 0; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Send to Papir</h1>
+  <p class="lede">One click hands the current page or PDF to Papir for review.</p>
+
+  <ol>
+    <li>Open Papir → Settings → Browser and switch on <em>Accept papir:// links</em>.</li>
+    <li>Press <strong>Connect Browser</strong> there; this page fills itself in.</li>
+    <li>Click the Papir button on any page.</li>
+  </ol>
+
+  <label for="token">Token</label>
+  <input id="token" type="password" autocomplete="off" spellcheck="false" placeholder="64 hex characters">
+
+  <label for="endpoint">Endpoint</label>
+  <input id="endpoint" type="text" spellcheck="false" placeholder="http://127.0.0.1:47821">
+
+  <div class="row">
+    <button id="save">Save</button>
+    <button id="test" class="ghost">Test</button>
+  </div>
+  <div id="status" role="status"></div>
+  <p id="version" style="margin-top:28px;color:rgba(243,234,219,.45);font-size:12px"></p>
+</main>
+<script src="options.js"></script>
+</body>
+</html>

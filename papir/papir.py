@@ -20,7 +20,7 @@ import secrets
 import socket
 from pathlib import Path
 
-from papir import api
+from papir import api, markdown
 
 SUPPORTED = {
     "pdf": "PDF", "epub": "EPUB", "doc": "DOC", "docx": "DOCX",
@@ -28,6 +28,11 @@ SUPPORTED = {
     "mobi": "MOBI", "azw": "AZW",
     "jpg": "JPEG", "jpeg": "JPEG", "gif": "GIF", "png": "PNG", "bmp": "BMP",
 }
+
+
+class UnsupportedType(ValueError):
+    """The file has no Amazon intake and no local conversion."""
+
 
 DEFAULT_CLIENT = os.path.join("~", ".config", "papir", "client.json")
 
@@ -217,8 +222,10 @@ def _format_for(path, override="auto"):
     if override and override.lower() != "auto":
         return override.upper()
     ext = Path(path).suffix.lower().lstrip(".")
+    if ext in markdown.EXTENSIONS:
+        return "MD"  # internal marker: converted to HTML before upload
     if ext not in SUPPORTED:
-        raise ValueError(f"unsupported type (.{ext}): {path}")
+        raise UnsupportedType(f"unsupported type (.{ext}): {path}")
     return SUPPORTED[ext]
 
 
@@ -234,19 +241,32 @@ def papirSend(file_path, author=None, title=None, target=None, fmt="auto", archi
     on_progress(sent, total): optional upload progress callback.
     convert: True = Amazon's "convert PDF to Kindle format" (forceConvert).
     False (default) keeps the native PDF.
+
+    Markdown (.md and friends) is rendered to HTML and uploaded as such,
+    because Amazon's service has no markdown intake. Title and author are
+    resolved from the original file, so the document keeps its name.
     """
     info, _ = load_client(path)
     fp = Path(file_path).expanduser()
     if not fp.is_file():
         raise FileNotFoundError(f"not found: {file_path}")
-    size = fp.stat().st_size
-    if size <= 0:
+    if fp.stat().st_size <= 0:
         raise ValueError(f"empty file: {file_path}")
     fmt = _format_for(fp, fmt)
     author = resolve_author(author, path)
     title = resolve_title(title, fp)
-
     target = resolve_target(info, target, path)
+
+    if fmt == "MD":
+        with markdown.converted(fp, title=title) as prepared:
+            logging.info(f"converted {fp.name} to HTML (title={title!r})")
+            return _beam(prepared, info, "HTML", author, title, target, archive, convert, on_progress)
+    return _beam(fp, info, fmt, author, title, target, archive, convert, on_progress)
+
+
+def _beam(fp, info, fmt, author, title, target, archive, convert, on_progress):
+    """Upload one prepared file and hand it to Amazon."""
+    size = fp.stat().st_size
     logging.info(f"uploading {fp.name} ({size} bytes, {fmt}) author={author!r} title={title!r} -> {len(target)} target(s)")
 
     upload_url, stk_token = api.get_upload_url(info, size)
