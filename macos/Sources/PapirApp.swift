@@ -721,6 +721,8 @@ struct ContentView: View {
                             Text(sender.busy ? sender.sendProgressText : sender.checkingAccount ? "Checking account…" : "Send \(sender.files.count == 1 ? "Document" : "Documents")")
                         }.frame(maxWidth: .infinity)
                     }.buttonStyle(PapirSendButtonStyle())
+                        .keyboardShortcut(.return, modifiers: .command)
+                        .help("Send \(sender.files.count == 1 ? "document" : "documents") (⌘↩)")
                         .disabled(sender.checkingAccount || !sender.signedIn || sender.authBusy || sender.pendingDrops > 0)
                 }.textFieldStyle(.roundedBorder)
             }
