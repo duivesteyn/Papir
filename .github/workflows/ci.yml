@@ -7,13 +7,20 @@ permissions:
   contents: read
 jobs:
   test:
-    runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        python: ['3.9', '3.12']
+        # ubuntu-latest moved to 26.04, which no longer has a Python 3.9 build.
+        # Keep the oldest supported version on the last image that ships it.
+        include:
+          - python: '3.9'
+            runner: ubuntu-24.04
+          - python: '3.12'
+            runner: ubuntu-latest
+    runs-on: ${{ matrix.runner }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python }}
       - run: python -m pip install .
