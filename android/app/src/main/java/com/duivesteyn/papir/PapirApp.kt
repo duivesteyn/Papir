@@ -4,6 +4,7 @@ import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
+import com.duivesteyn.papir.share.ShareTargets
 import java.io.File
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -17,6 +18,9 @@ class PapirApp : Application() {
         super.onCreate()
         createChannels(this)
         sweepInbox(cacheDir)
+        // A reinstall resets every share-target alias to its manifest default,
+        // and the choice lives in preferences: reapply it once per process.
+        io.execute { ShareTargets.reconcile(this) }
     }
 
     private fun createChannels(context: Context) {

@@ -21,6 +21,7 @@
     <string name="devices_failed">Couldn’t load devices — %1$s</string>
     <string name="all_devices">All devices</string>
     <string name="all_devices_hint">Every Kindle and reading app on the account</string>
+    <string name="destination_mark_hint">Papir wears this choice in the share sheet.</string>
 
     <string name="author_label">Author</string>
     <string name="author_hint">Your name</string>

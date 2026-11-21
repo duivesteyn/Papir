@@ -34,19 +34,35 @@ app). A live Amazon account and a real Kindle have not been used yet.
   arrives as **Light and Wonder Report**.
 - Plain-text shares become a `.txt` document. Links are refused for now:
   paginating a web page on the phone is a different job (see *Next*).
+- **Wears the Kindle you picked.** The share-sheet icon follows the destination:
+  a Scribe shows a Scribe, a Paperwhite shows a Paperwhite. The choice comes
+  from the name Amazon reports for the device, so it works for any account and
+  any Kindle — see *Icons* below.
 - The **Convert PDFs** switch mirrors the Mac app's opt-in. Off keeps the
   original page layout.
 
 ## Install
 
-Build it (below) and install over USB:
+On the phone, open the release asset and let Chrome download it:
+
+    https://github.com/duivesteyn/Papir/releases/download/android-0.1.2/papir-0.1.2.apk
+
+Chrome asks once for **Install unknown apps**; allow it and the package
+installer opens the APK. Downloading and tapping in the browser works. Opening
+an APK from a Google Drive preview does not — Drive shows its own preview rather
+than handing the file to the installer — so download it from Drive and open it
+from **Files → Downloads** instead.
+
+The APK is signed with a local development key, so it only installs over a build
+with the same key. If an older Papir is already on the phone and the installer
+says "App not installed", uninstall that copy first; preferences and a signed-in
+account go with it.
+
+Or build it (below) and install over USB:
 
 ```sh
 adb install -r android/build/papir-0.1.2.apk
 ```
-
-When 0.1.2 is tagged, the APK is attached to the GitHub release as well; opening
-it on the phone asks you to allow installs from whichever app downloaded it.
 
 Open Papir once, sign in, pick your Kindle. On Android 13+ the system also asks
 for notification permission — without it Papir still sends, you just lose the
@@ -93,6 +109,8 @@ document as soon as it completes — the share is not lost.
 ## Settings
 
 - **Destination** — one Kindle, or *All devices*. Refreshed from your account.
+  The small mark beside the heading is the icon Papir wears in the share sheet
+  while that choice stands; *All devices* wears Papir's own.
 - **Author** — what the Kindle shelf shows; defaults to the Amazon account name.
 - **Convert PDFs** — let Amazon reflow PDFs into Kindle format.
 
@@ -142,16 +160,65 @@ grant is still valid, sent from there, and deleted on success; anything left
 behind by a crash or a cancelled share is swept after 24 hours. No storage
 permission is needed.
 
+## Icons
+
+`android/tools/make-icons.py` produces every mark. It is deterministic and needs
+no drawing tools:
+
+```sh
+python3 android/tools/make-icons.py    # res/ resources + kindle_app_icon_pack.zip
+```
+
+Two different jobs. The **app icon** is the launcher glyph that already shipped,
+kept in `art/Iconi/Papir-launcher-glyph-432.png` — same matte, same shading — and
+only fitted to 0.315 of the 108dp canvas. Nothing is redrawn, re-keyed or
+retinted; that is inside the 66dp safe circle, which is all that was wrong: the
+same glyph used to be scaled to 70% of the canvas, so launchers cropped the bowl
+and the stem.
+
+The **share-sheet marks** are drawn from scratch, one silhouette per Kindle
+family: Scribe (with its pen), Paperwhite (wide chin and home button), Basic,
+Colorsoft (colour cover), Oasis (page-turn buttons), Voyage (flush glass),
+Keyboard, Touch, DX, and a plain slab for anything unmatched. The script fails
+itself if any mark reaches past the launcher mask radius, so the crop cannot
+come back unnoticed.
+
+Android builds a share target's icon from the manifest, with no API to change it
+at runtime. So the manifest declares one `<activity-alias>` per silhouette, all
+over `SendActivity` and carrying the same intent filter, and `ShareTargets`
+leaves exactly one of them enabled:
+
+```kotlin
+DeviceKind.forDeviceName("Ben's Kindle Scribe")  // SCRIBE
+Config.setDefaultTarget(context, serial, name)   // remembers the pick
+ShareTargets.sync(context)                       // swaps the alias, once
+```
+
+The name is matched in a fixed order — scribe, colorsoft, oasis, voyage,
+keyboard, dx, paperwhite, touch, basic — so a "Kindle Scribe Colorsoft" is a
+Scribe first. Anything unplaced (a Fire tablet, a reading app, "Ben's 2nd
+Kindle") gets the generic slab, and *All devices* or a signed-out app shows the
+Papir mark. `ShareTargets.reconcile()` re-applies the choice once per process
+start, because a sideloaded upgrade resets every alias to its manifest default.
+
+`kindle_app_icon_pack.zip` in the repository root is the same art for other
+targets: transparent glyphs, baked tiles at 16–1024 px, and the adaptive-icon
+resources, plus a contact sheet.
+
 ## Layout
 
 ```
 android/
   app/src/main/java/com/duivesteyn/papir/
-    core/        protocol: Pkce, Signer, KindleApi, Sender, Config, Documents
-    share/       sharesheet entry, payload parsing, upload service
+    core/        protocol: Pkce, Signer, KindleApi, Sender, Config, Documents,
+                 DeviceKind (name -> silhouette)
+    share/       sharesheet entry, payload parsing, upload service,
+                 ShareTargets (alias switching)
     ui/          setup/settings and the browser sign-in hand-off
-  app/src/main/res/     forest/ivory surfaces, adaptive icon, notification glyph
-  app/src/test/         JVM tests (signer parity, PKCE, titles)
+  app/src/main/res/     forest/ivory surfaces, adaptive icon, share-sheet marks,
+                        settings previews, notification glyph
+  app/src/test/         JVM tests (signer parity, PKCE, titles, name matching,
+                        manifest/alias integrity)
   tools/                bootstrap, build, test, fixture generator, icon maker
 ```
 

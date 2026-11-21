@@ -13,6 +13,7 @@ import android.text.TextWatcher
 import android.view.View
 import android.widget.Button
 import android.widget.EditText
+import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.RadioButton
 import android.widget.RadioGroup
@@ -21,8 +22,10 @@ import android.widget.TextView
 import com.duivesteyn.papir.PapirApp
 import com.duivesteyn.papir.R
 import com.duivesteyn.papir.core.Config
+import com.duivesteyn.papir.core.DeviceKind
 import com.duivesteyn.papir.core.OwnedDevice
 import com.duivesteyn.papir.core.Sender
+import com.duivesteyn.papir.share.ShareTargets
 
 /**
  * Setup and settings. Deliberately one screen: sign in, pick a Kindle, pick an
@@ -38,6 +41,7 @@ class MainActivity : Activity() {
     private lateinit var devicesError: TextView
     private lateinit var authorInput: EditText
     private lateinit var convertSwitch: Switch
+    private lateinit var destinationMark: ImageView
     private lateinit var versionLine: TextView
     private lateinit var signInButton: Button
     private lateinit var refreshButton: Button
@@ -60,6 +64,7 @@ class MainActivity : Activity() {
         devicesError = findViewById(R.id.devicesError)
         authorInput = findViewById(R.id.authorInput)
         convertSwitch = findViewById(R.id.convertSwitch)
+        destinationMark = findViewById(R.id.destinationMark)
         versionLine = findViewById(R.id.versionLine)
         signInButton = findViewById(R.id.signInButton)
         refreshButton = findViewById(R.id.refreshButton)
@@ -78,6 +83,9 @@ class MainActivity : Activity() {
     override fun onResume() {
         super.onResume()
         render()
+        // The destination may have been picked on another screen, or the Kindle
+        // renamed in Amazon: keep the share sheet's mark in step either way.
+        ShareTargets.sync(this)
         if (Config.isSignedIn(this) && !loadedDevices) loadDevices(force = false)
     }
 
@@ -93,6 +101,9 @@ class MainActivity : Activity() {
 
     private fun render() {
         val info = Config.device(this)
+        // Safe to draw before the sign-in check: with no destination chosen the
+        // desired mark is Papir's own.
+        showDestinationMark()
         if (info == null) {
             signInBlock.visibility = View.VISIBLE
             mainBlock.visibility = View.GONE
@@ -152,6 +163,9 @@ class MainActivity : Activity() {
         } else {
             devicesError.visibility = View.GONE
         }
+        // A refresh can rename the Kindle ("Ben's 2nd Scribe"), which is the only
+        // input the share-sheet mark has.
+        ShareTargets.sync(this)
     }
 
     private fun deviceRow(label: String, serial: String?): RadioButton {
@@ -169,10 +183,32 @@ class MainActivity : Activity() {
             RadioGroup.LayoutParams.WRAP_CONTENT,
         )
         row.setOnClickListener {
-            Config.setDefaultTarget(this, serial)
-            // The sender resolves "all" lazily; no network needed here.
+            // The sender resolves "all" lazily; no network needed here. The name
+            // is kept so the share-sheet mark can follow the pick immediately.
+            Config.setDefaultTarget(this, serial, label)
+            ShareTargets.sync(this)
+            showDestinationMark()
         }
         return row
+    }
+
+    /** The mark the share sheet is wearing right now, beside "Destination". */
+    private fun showDestinationMark() {
+        destinationMark.setImageResource(markFor(ShareTargets.desired(this)))
+    }
+
+    private fun markFor(kind: DeviceKind): Int = when (kind) {
+        DeviceKind.PAPIR -> R.drawable.ic_mark_papir
+        DeviceKind.SCRIBE -> R.drawable.ic_mark_scribe
+        DeviceKind.COLORSOFT -> R.drawable.ic_mark_colorsoft
+        DeviceKind.OASIS -> R.drawable.ic_mark_oasis
+        DeviceKind.VOYAGE -> R.drawable.ic_mark_voyage
+        DeviceKind.KEYBOARD -> R.drawable.ic_mark_keyboard
+        DeviceKind.DX -> R.drawable.ic_mark_dx
+        DeviceKind.PAPERWHITE -> R.drawable.ic_mark_paperwhite
+        DeviceKind.TOUCH -> R.drawable.ic_mark_touch
+        DeviceKind.BASIC -> R.drawable.ic_mark_basic
+        DeviceKind.GENERIC -> R.drawable.ic_mark_generic
     }
 
     // ----------------------------------------------------------------- devices
@@ -226,6 +262,7 @@ class MainActivity : Activity() {
                 deviceGroup.removeAllViews()
                 loadedDevices = false
                 render()
+                ShareTargets.sync(this)
             }
         }
     }

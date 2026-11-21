@@ -11,7 +11,7 @@ rm -rf "$BUILD/test-classes"
 mkdir -p "$BUILD/test-classes"
 
 CORE=()
-for file in Signer Pkce Documents; do
+for file in Signer Pkce Documents DeviceKind; do
     CORE+=("$ANDROID/app/src/main/java/com/duivesteyn/papir/core/$file.kt")
 done
 TESTS=()
@@ -24,8 +24,11 @@ kotlinc -no-stdlib -jvm-target 1.8 \
     "${CORE[@]}" "${TESTS[@]}"
 
 echo "  run"
-java -cp "$KOTLIN_STDLIB:$TEST_LIBS/junit-4.13.2.jar:$TEST_LIBS/hamcrest-core-1.3.jar:$BUILD/test-classes" \
+java -Dpapir.android="$ANDROID" \
+    -cp "$KOTLIN_STDLIB:$TEST_LIBS/junit-4.13.2.jar:$TEST_LIBS/hamcrest-core-1.3.jar:$BUILD/test-classes" \
     org.junit.runner.JUnitCore \
     com.duivesteyn.papir.core.SignerTest \
     com.duivesteyn.papir.core.PkceTest \
-    com.duivesteyn.papir.core.DocumentsTest
+    com.duivesteyn.papir.core.DocumentsTest \
+    com.duivesteyn.papir.core.DeviceKindTest \
+    com.duivesteyn.papir.core.ManifestTest

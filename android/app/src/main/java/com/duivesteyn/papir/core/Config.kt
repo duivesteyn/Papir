@@ -33,6 +33,9 @@ object Config {
 
     private const val KEY_LOGIN_VERIFIER = "login_verifier"
 
+    private const val KEY_DEFAULT_TARGET_NAME = "default_target_name"
+    private const val KEY_SHARE_KIND = "share_kind"
+
     private fun prefs(context: Context) =
         context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
@@ -84,12 +87,39 @@ object Config {
     /** Serial, or null for "every device" (matching the CLI's `all`). */
     fun defaultTarget(context: Context): String? = prefs(context).getString(KEY_DEFAULT_TARGET, null)
 
-    fun setDefaultTarget(context: Context, serial: String?) {
+    /**
+     * Name of the chosen Kindle, used to pick the share-sheet mark. The cached
+     * device list wins when it knows the serial; the stored name covers the
+     * moment right after a pick, before the list is refreshed.
+     */
+    fun defaultTargetName(context: Context): String? {
+        val serial = defaultTarget(context) ?: return null
+        return cachedDevices(context).firstOrNull { it.serial == serial }?.name
+            ?: prefs(context).getString(KEY_DEFAULT_TARGET_NAME, null)?.takeIf { it.isNotBlank() }
+    }
+
+    fun setDefaultTarget(context: Context, serial: String?, name: String? = null) {
         val edit = prefs(context).edit()
-        if (serial.isNullOrEmpty()) edit.remove(KEY_DEFAULT_TARGET) else edit.putString(KEY_DEFAULT_TARGET, serial)
+        if (serial.isNullOrEmpty()) {
+            edit.remove(KEY_DEFAULT_TARGET)
+            edit.remove(KEY_DEFAULT_TARGET_NAME)
+        } else {
+            edit.putString(KEY_DEFAULT_TARGET, serial)
+            if (name.isNullOrBlank()) {
+                edit.remove(KEY_DEFAULT_TARGET_NAME)
+            } else {
+                edit.putString(KEY_DEFAULT_TARGET_NAME, name)
+            }
+        }
         edit.apply()
         rewriteClientJson(context)
     }
+
+    /** Slug of the mark the share sheet is currently wearing, for cheap re-checks. */
+    fun shareKind(context: Context): String? = prefs(context).getString(KEY_SHARE_KIND, null)
+
+    fun setShareKind(context: Context, slug: String) =
+        prefs(context).edit().putString(KEY_SHARE_KIND, slug).apply()
 
     fun defaultAuthor(context: Context): String? =
         prefs(context).getString(KEY_DEFAULT_AUTHOR, null)?.takeIf { it.isNotBlank() }

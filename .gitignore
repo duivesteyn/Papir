@@ -239,3 +239,6 @@ macos/releases/
 
 # Android build toolchain (SDK, Kotlin compiler) and local signing key
 .tooling/
+
+# Generated icon-pack backups
+art/kindle_app_icon_pack-previous.zip

@@ -37,42 +37,42 @@
             android:windowSoftInputMode="adjustResize" />
 
         <!--
-            The share-sheet entry. Translucent and chrome-free on purpose: the
-            send starts from here and the result arrives as a notification.
+            The share sheet, one <activity-alias> per Kindle silhouette. Android
+            takes a target's icon from the manifest when the chooser is built and
+            offers no API to change it later, so each mark exists as its own
+            component over the same SendActivity. ShareTargets.sync() leaves
+            exactly one enabled, chosen from the destination the user picked:
+            see DeviceKind. The intent filters below are identical in every
+            alias - ManifestTest fails if they drift.
+
+            The activity is exported as well as the aliases, so an alias can
+            start it on every OS version; with no intent filter of its own it is
+            never offered in a chooser, and it closes itself when a share
+            carries no document.
         -->
         <activity
             android:name=".share.SendActivity"
-            android:exported="true"
             android:excludeFromRecents="true"
+            android:exported="true"
+            android:launchMode="singleTop"
+            android:theme="@style/Theme.Papir.Dialog" />
+
+        <!-- Nothing chosen yet, "All devices", or a name Papir cannot place: -->
+        <activity-alias
+            android:name=".share.ShareTargetPapir"
+            android:enabled="true"
+            android:excludeFromRecents="true"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher"
             android:label="@string/share_target_label"
             android:launchMode="singleTop"
+            android:targetActivity=".share.SendActivity"
             android:theme="@style/Theme.Papir.Dialog">
 
             <intent-filter android:label="@string/share_target_label">
                 <action android:name="android.intent.action.SEND" />
-                <category android:name="android.intent.category.DEFAULT" />
-
-                <data android:mimeType="application/pdf" />
-                <data android:mimeType="application/epub+zip" />
-                <data android:mimeType="application/msword" />
-                <data android:mimeType="application/vnd.openxmlformats-officedocument.wordprocessingml.document" />
-                <data android:mimeType="application/rtf" />
-                <data android:mimeType="text/rtf" />
-                <data android:mimeType="text/plain" />
-                <data android:mimeType="text/html" />
-                <data android:mimeType="application/xhtml+xml" />
-                <data android:mimeType="application/x-mobipocket-ebook" />
-                <data android:mimeType="application/vnd.amazon.ebook" />
-                <data android:mimeType="image/jpeg" />
-                <data android:mimeType="image/png" />
-                <data android:mimeType="image/gif" />
-                <data android:mimeType="image/bmp" />
-            </intent-filter>
-
-            <intent-filter android:label="@string/share_target_label">
                 <action android:name="android.intent.action.SEND_MULTIPLE" />
                 <category android:name="android.intent.category.DEFAULT" />
-
                 <data android:mimeType="application/pdf" />
                 <data android:mimeType="application/epub+zip" />
                 <data android:mimeType="application/msword" />
@@ -89,7 +89,347 @@
                 <data android:mimeType="image/gif" />
                 <data android:mimeType="image/bmp" />
             </intent-filter>
-        </activity>
+        </activity-alias>
+
+        <!-- Kindle Scribe - note tablet with the pen alongside. -->
+        <activity-alias
+            android:name=".share.ShareTargetScribe"
+            android:enabled="false"
+            android:excludeFromRecents="true"
+            android:exported="true"
+            android:icon="@mipmap/ic_share_scribe"
+            android:label="@string/share_target_label"
+            android:launchMode="singleTop"
+            android:targetActivity=".share.SendActivity"
+            android:theme="@style/Theme.Papir.Dialog">
+
+            <intent-filter android:label="@string/share_target_label">
+                <action android:name="android.intent.action.SEND" />
+                <action android:name="android.intent.action.SEND_MULTIPLE" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="application/pdf" />
+                <data android:mimeType="application/epub+zip" />
+                <data android:mimeType="application/msword" />
+                <data android:mimeType="application/vnd.openxmlformats-officedocument.wordprocessingml.document" />
+                <data android:mimeType="application/rtf" />
+                <data android:mimeType="text/rtf" />
+                <data android:mimeType="text/plain" />
+                <data android:mimeType="text/html" />
+                <data android:mimeType="application/xhtml+xml" />
+                <data android:mimeType="application/x-mobipocket-ebook" />
+                <data android:mimeType="application/vnd.amazon.ebook" />
+                <data android:mimeType="image/jpeg" />
+                <data android:mimeType="image/png" />
+                <data android:mimeType="image/gif" />
+                <data android:mimeType="image/bmp" />
+            </intent-filter>
+        </activity-alias>
+
+        <!-- Colorsoft - the cover on the page is in colour. -->
+        <activity-alias
+            android:name=".share.ShareTargetColorsoft"
+            android:enabled="false"
+            android:excludeFromRecents="true"
+            android:exported="true"
+            android:icon="@mipmap/ic_share_colorsoft"
+            android:label="@string/share_target_label"
+            android:launchMode="singleTop"
+            android:targetActivity=".share.SendActivity"
+            android:theme="@style/Theme.Papir.Dialog">
+
+            <intent-filter android:label="@string/share_target_label">
+                <action android:name="android.intent.action.SEND" />
+                <action android:name="android.intent.action.SEND_MULTIPLE" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="application/pdf" />
+                <data android:mimeType="application/epub+zip" />
+                <data android:mimeType="application/msword" />
+                <data android:mimeType="application/vnd.openxmlformats-officedocument.wordprocessingml.document" />
+                <data android:mimeType="application/rtf" />
+                <data android:mimeType="text/rtf" />
+                <data android:mimeType="text/plain" />
+                <data android:mimeType="text/html" />
+                <data android:mimeType="application/xhtml+xml" />
+                <data android:mimeType="application/x-mobipocket-ebook" />
+                <data android:mimeType="application/vnd.amazon.ebook" />
+                <data android:mimeType="image/jpeg" />
+                <data android:mimeType="image/png" />
+                <data android:mimeType="image/gif" />
+                <data android:mimeType="image/bmp" />
+            </intent-filter>
+        </activity-alias>
+
+        <!-- Oasis - spine with page-turn buttons. -->
+        <activity-alias
+            android:name=".share.ShareTargetOasis"
+            android:enabled="false"
+            android:excludeFromRecents="true"
+            android:exported="true"
+            android:icon="@mipmap/ic_share_oasis"
+            android:label="@string/share_target_label"
+            android:launchMode="singleTop"
+            android:targetActivity=".share.SendActivity"
+            android:theme="@style/Theme.Papir.Dialog">
+
+            <intent-filter android:label="@string/share_target_label">
+                <action android:name="android.intent.action.SEND" />
+                <action android:name="android.intent.action.SEND_MULTIPLE" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="application/pdf" />
+                <data android:mimeType="application/epub+zip" />
+                <data android:mimeType="application/msword" />
+                <data android:mimeType="application/vnd.openxmlformats-officedocument.wordprocessingml.document" />
+                <data android:mimeType="application/rtf" />
+                <data android:mimeType="text/rtf" />
+                <data android:mimeType="text/plain" />
+                <data android:mimeType="text/html" />
+                <data android:mimeType="application/xhtml+xml" />
+                <data android:mimeType="application/x-mobipocket-ebook" />
+                <data android:mimeType="application/vnd.amazon.ebook" />
+                <data android:mimeType="image/jpeg" />
+                <data android:mimeType="image/png" />
+                <data android:mimeType="image/gif" />
+                <data android:mimeType="image/bmp" />
+            </intent-filter>
+        </activity-alias>
+
+        <!-- Voyage - flush glass front. -->
+        <activity-alias
+            android:name=".share.ShareTargetVoyage"
+            android:enabled="false"
+            android:excludeFromRecents="true"
+            android:exported="true"
+            android:icon="@mipmap/ic_share_voyage"
+            android:label="@string/share_target_label"
+            android:launchMode="singleTop"
+            android:targetActivity=".share.SendActivity"
+            android:theme="@style/Theme.Papir.Dialog">
+
+            <intent-filter android:label="@string/share_target_label">
+                <action android:name="android.intent.action.SEND" />
+                <action android:name="android.intent.action.SEND_MULTIPLE" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="application/pdf" />
+                <data android:mimeType="application/epub+zip" />
+                <data android:mimeType="application/msword" />
+                <data android:mimeType="application/vnd.openxmlformats-officedocument.wordprocessingml.document" />
+                <data android:mimeType="application/rtf" />
+                <data android:mimeType="text/rtf" />
+                <data android:mimeType="text/plain" />
+                <data android:mimeType="text/html" />
+                <data android:mimeType="application/xhtml+xml" />
+                <data android:mimeType="application/x-mobipocket-ebook" />
+                <data android:mimeType="application/vnd.amazon.ebook" />
+                <data android:mimeType="image/jpeg" />
+                <data android:mimeType="image/png" />
+                <data android:mimeType="image/gif" />
+                <data android:mimeType="image/bmp" />
+            </intent-filter>
+        </activity-alias>
+
+        <!-- Keyboard - keys under the page. -->
+        <activity-alias
+            android:name=".share.ShareTargetKeyboard"
+            android:enabled="false"
+            android:excludeFromRecents="true"
+            android:exported="true"
+            android:icon="@mipmap/ic_share_keyboard"
+            android:label="@string/share_target_label"
+            android:launchMode="singleTop"
+            android:targetActivity=".share.SendActivity"
+            android:theme="@style/Theme.Papir.Dialog">
+
+            <intent-filter android:label="@string/share_target_label">
+                <action android:name="android.intent.action.SEND" />
+                <action android:name="android.intent.action.SEND_MULTIPLE" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="application/pdf" />
+                <data android:mimeType="application/epub+zip" />
+                <data android:mimeType="application/msword" />
+                <data android:mimeType="application/vnd.openxmlformats-officedocument.wordprocessingml.document" />
+                <data android:mimeType="application/rtf" />
+                <data android:mimeType="text/rtf" />
+                <data android:mimeType="text/plain" />
+                <data android:mimeType="text/html" />
+                <data android:mimeType="application/xhtml+xml" />
+                <data android:mimeType="application/x-mobipocket-ebook" />
+                <data android:mimeType="application/vnd.amazon.ebook" />
+                <data android:mimeType="image/jpeg" />
+                <data android:mimeType="image/png" />
+                <data android:mimeType="image/gif" />
+                <data android:mimeType="image/bmp" />
+            </intent-filter>
+        </activity-alias>
+
+        <!-- DX - landscape page over a keyboard. -->
+        <activity-alias
+            android:name=".share.ShareTargetDx"
+            android:enabled="false"
+            android:excludeFromRecents="true"
+            android:exported="true"
+            android:icon="@mipmap/ic_share_dx"
+            android:label="@string/share_target_label"
+            android:launchMode="singleTop"
+            android:targetActivity=".share.SendActivity"
+            android:theme="@style/Theme.Papir.Dialog">
+
+            <intent-filter android:label="@string/share_target_label">
+                <action android:name="android.intent.action.SEND" />
+                <action android:name="android.intent.action.SEND_MULTIPLE" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="application/pdf" />
+                <data android:mimeType="application/epub+zip" />
+                <data android:mimeType="application/msword" />
+                <data android:mimeType="application/vnd.openxmlformats-officedocument.wordprocessingml.document" />
+                <data android:mimeType="application/rtf" />
+                <data android:mimeType="text/rtf" />
+                <data android:mimeType="text/plain" />
+                <data android:mimeType="text/html" />
+                <data android:mimeType="application/xhtml+xml" />
+                <data android:mimeType="application/x-mobipocket-ebook" />
+                <data android:mimeType="application/vnd.amazon.ebook" />
+                <data android:mimeType="image/jpeg" />
+                <data android:mimeType="image/png" />
+                <data android:mimeType="image/gif" />
+                <data android:mimeType="image/bmp" />
+            </intent-filter>
+        </activity-alias>
+
+        <!-- Paperwhite - wide chin, round home button. -->
+        <activity-alias
+            android:name=".share.ShareTargetPaperwhite"
+            android:enabled="false"
+            android:excludeFromRecents="true"
+            android:exported="true"
+            android:icon="@mipmap/ic_share_paperwhite"
+            android:label="@string/share_target_label"
+            android:launchMode="singleTop"
+            android:targetActivity=".share.SendActivity"
+            android:theme="@style/Theme.Papir.Dialog">
+
+            <intent-filter android:label="@string/share_target_label">
+                <action android:name="android.intent.action.SEND" />
+                <action android:name="android.intent.action.SEND_MULTIPLE" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="application/pdf" />
+                <data android:mimeType="application/epub+zip" />
+                <data android:mimeType="application/msword" />
+                <data android:mimeType="application/vnd.openxmlformats-officedocument.wordprocessingml.document" />
+                <data android:mimeType="application/rtf" />
+                <data android:mimeType="text/rtf" />
+                <data android:mimeType="text/plain" />
+                <data android:mimeType="text/html" />
+                <data android:mimeType="application/xhtml+xml" />
+                <data android:mimeType="application/x-mobipocket-ebook" />
+                <data android:mimeType="application/vnd.amazon.ebook" />
+                <data android:mimeType="image/jpeg" />
+                <data android:mimeType="image/png" />
+                <data android:mimeType="image/gif" />
+                <data android:mimeType="image/bmp" />
+            </intent-filter>
+        </activity-alias>
+
+        <!-- Touch - touch ripple and a home bar. -->
+        <activity-alias
+            android:name=".share.ShareTargetTouch"
+            android:enabled="false"
+            android:excludeFromRecents="true"
+            android:exported="true"
+            android:icon="@mipmap/ic_share_touch"
+            android:label="@string/share_target_label"
+            android:launchMode="singleTop"
+            android:targetActivity=".share.SendActivity"
+            android:theme="@style/Theme.Papir.Dialog">
+
+            <intent-filter android:label="@string/share_target_label">
+                <action android:name="android.intent.action.SEND" />
+                <action android:name="android.intent.action.SEND_MULTIPLE" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="application/pdf" />
+                <data android:mimeType="application/epub+zip" />
+                <data android:mimeType="application/msword" />
+                <data android:mimeType="application/vnd.openxmlformats-officedocument.wordprocessingml.document" />
+                <data android:mimeType="application/rtf" />
+                <data android:mimeType="text/rtf" />
+                <data android:mimeType="text/plain" />
+                <data android:mimeType="text/html" />
+                <data android:mimeType="application/xhtml+xml" />
+                <data android:mimeType="application/x-mobipocket-ebook" />
+                <data android:mimeType="application/vnd.amazon.ebook" />
+                <data android:mimeType="image/jpeg" />
+                <data android:mimeType="image/png" />
+                <data android:mimeType="image/gif" />
+                <data android:mimeType="image/bmp" />
+            </intent-filter>
+        </activity-alias>
+
+        <!-- Basic - even bezel, no button. -->
+        <activity-alias
+            android:name=".share.ShareTargetBasic"
+            android:enabled="false"
+            android:excludeFromRecents="true"
+            android:exported="true"
+            android:icon="@mipmap/ic_share_basic"
+            android:label="@string/share_target_label"
+            android:launchMode="singleTop"
+            android:targetActivity=".share.SendActivity"
+            android:theme="@style/Theme.Papir.Dialog">
+
+            <intent-filter android:label="@string/share_target_label">
+                <action android:name="android.intent.action.SEND" />
+                <action android:name="android.intent.action.SEND_MULTIPLE" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="application/pdf" />
+                <data android:mimeType="application/epub+zip" />
+                <data android:mimeType="application/msword" />
+                <data android:mimeType="application/vnd.openxmlformats-officedocument.wordprocessingml.document" />
+                <data android:mimeType="application/rtf" />
+                <data android:mimeType="text/rtf" />
+                <data android:mimeType="text/plain" />
+                <data android:mimeType="text/html" />
+                <data android:mimeType="application/xhtml+xml" />
+                <data android:mimeType="application/x-mobipocket-ebook" />
+                <data android:mimeType="application/vnd.amazon.ebook" />
+                <data android:mimeType="image/jpeg" />
+                <data android:mimeType="image/png" />
+                <data android:mimeType="image/gif" />
+                <data android:mimeType="image/bmp" />
+            </intent-filter>
+        </activity-alias>
+
+        <!-- Fallback slab for anything else. -->
+        <activity-alias
+            android:name=".share.ShareTargetGeneric"
+            android:enabled="false"
+            android:excludeFromRecents="true"
+            android:exported="true"
+            android:icon="@mipmap/ic_share_generic"
+            android:label="@string/share_target_label"
+            android:launchMode="singleTop"
+            android:targetActivity=".share.SendActivity"
+            android:theme="@style/Theme.Papir.Dialog">
+
+            <intent-filter android:label="@string/share_target_label">
+                <action android:name="android.intent.action.SEND" />
+                <action android:name="android.intent.action.SEND_MULTIPLE" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="application/pdf" />
+                <data android:mimeType="application/epub+zip" />
+                <data android:mimeType="application/msword" />
+                <data android:mimeType="application/vnd.openxmlformats-officedocument.wordprocessingml.document" />
+                <data android:mimeType="application/rtf" />
+                <data android:mimeType="text/rtf" />
+                <data android:mimeType="text/plain" />
+                <data android:mimeType="text/html" />
+                <data android:mimeType="application/xhtml+xml" />
+                <data android:mimeType="application/x-mobipocket-ebook" />
+                <data android:mimeType="application/vnd.amazon.ebook" />
+                <data android:mimeType="image/jpeg" />
+                <data android:mimeType="image/png" />
+                <data android:mimeType="image/gif" />
+                <data android:mimeType="image/bmp" />
+            </intent-filter>
+        </activity-alias>
 
         <service
             android:name=".share.UploadService"

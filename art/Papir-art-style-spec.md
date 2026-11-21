@@ -1,6 +1,6 @@
 # Papir — Art Style Spec
 
-Version 1.0 · 2026-10-06 · source of truth for all Papir artwork.
+Version 1.1 · 2026-11-17 · source of truth for all Papir artwork.
 Artwork lives in `art/Iconi/` (+ `Papir-icon-pack.zip`).
 Spec lives here, next to the art. Code repos reference it; nothing is
 duplicated except `_screenshots/Papir-256.png` in the CLI repo (README header).
@@ -38,6 +38,14 @@ no orange, no smile arrows, no "Kindle" wordmark anywhere near the art.
 - Exports: 1024 / 512 / 256 / 128 / 64 / 32 / 16. Small sizes (≤32) must be
   checked at 100% — if the fold reads muddy, redraw the 32/16 by hand rather
   than downscaling.
+- Android: the adaptive icon is this mark's approved launcher glyph,
+  `Papir-launcher-glyph-432.png` — the matte and shading exactly as shipped, not a
+  redraw and not re-keyed. `android/tools/make-icons.py` only fits it to 0.315 of
+  the 108dp canvas (inside the 66dp safe circle, so no launcher mask crops it) and
+  writes the transparent foreground and adaptive-icon XML into
+  `android/app/src/main/res/`. The Kindle silhouettes in
+  `kindle_app_icon_pack.zip` come from the same script and are device marks,
+  not part of the Papir mark.
 - `Papir.icns` and `AppIcon.appiconset/` are generated from these exports
   (`iconutil -c icns Papir.iconset`). Catalog validated: 10 slots, no gaps.
 
