@@ -2,7 +2,7 @@
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/papir_forest"
+    android:background="@color/papir_paper"
     android:fillViewport="true"
     android:scrollbars="none">
 
@@ -21,7 +21,7 @@
             android:fontFamily="serif"
             android:letterSpacing="-0.01"
             android:text="@string/app_name"
-            android:textColor="@color/papir_ivory"
+            android:textColor="@color/papir_ink"
             android:textSize="40sp" />
 
         <TextView
@@ -29,7 +29,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="2dp"
             android:text="@string/tagline"
-            android:textColor="@color/papir_ivory_dim"
+            android:textColor="@color/papir_ink_dim"
             android:textSize="15sp" />
 
         <TextView
@@ -39,7 +39,7 @@
             android:layout_marginTop="20dp"
             android:fontFamily="sans-serif-medium"
             android:text="@string/status_signed_out"
-            android:textColor="@color/papir_ivory_dim"
+            android:textColor="@color/papir_ink_dim"
             android:textSize="12sp" />
 
         <!-- Signed out -->
@@ -133,7 +133,7 @@
                     android:layout_height="wrap_content"
                     android:layout_gravity="center_horizontal"
                     android:layout_margin="10dp"
-                    android:indeterminateTint="@color/papir_ivory_dim"
+                    android:indeterminateTint="@color/papir_ink_dim"
                     android:visibility="gone" />
 
                 <TextView
@@ -221,8 +221,8 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="12dp"
-                    android:thumbTint="@color/papir_ivory"
-                    android:trackTint="@color/papir_line" />
+                    android:thumbTint="@color/papir_ink"
+                    android:trackTint="@color/papir_rule" />
             </LinearLayout>
 
             <Button

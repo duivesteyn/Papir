@@ -1,7 +1,7 @@
 // One click: hand the current tab to the receiver inside Papir.app.
 // Every outcome is announced in words — a badge on its own explains nothing.
 const DEFAULT_ENDPOINT = "http://127.0.0.1:47821";
-const GREEN = "#123325";
+const INK = "#1F1B16";
 const RED = "#8b2f2f";
 
 function badge(text, colour) {
@@ -22,7 +22,7 @@ function tell(title, message) {
 }
 
 function succeed() {
-  badge("\u2713", GREEN);
+  badge("\u2713", INK);
   tell("Sent to Papir", "It's in Papir's review window. Press Send there to reach your Kindle.");
 }
 

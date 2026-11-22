@@ -5,7 +5,7 @@
 ## Current implementation
 
 - Regular app window, opened from Finder/Dock when needed.
-- Forest green `#123325`, ivory `#F3EADB`, retained Papir icon, native controls.
+- Ink `#1F1B16` on parchment `#F3EADB`, retained Papir icon, native controls.
 - File drop and open panel, batch staging, author override, single-file title.
 - Actual destination name, refresh, saved device/library/all defaults.
 - Explicit PDF conversion, sending indicator, in-session results and retry.

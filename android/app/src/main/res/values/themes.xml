@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <!-- Forest-green window, ivory type: the same surface as the Mac app. -->
+    <!-- Ink on parchment: the same light surface as the Mac app. -->
     <style name="Theme.Papir" parent="@android:style/Theme.Material.NoActionBar">
-        <item name="android:windowBackground">@color/papir_forest</item>
-        <item name="android:colorBackground">@color/papir_forest</item>
+        <item name="android:windowBackground">@color/papir_paper</item>
+        <item name="android:colorBackground">@color/papir_paper</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
-        <item name="android:navigationBarColor">@color/papir_forest</item>
-        <item name="android:windowLightStatusBar">false</item>
-        <item name="android:windowLightNavigationBar">false</item>
+        <item name="android:navigationBarColor">@color/papir_paper</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
         <item name="android:windowActionModeOverlay">true</item>
     </style>
 

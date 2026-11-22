@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="_screenshots/Papir-256.png" width="128" alt="Papir icon — folded ivory paper P on forest green">
+  <img src="_screenshots/Papir-256.png" width="128" alt="Papir icon — ivory paper plane on forest green">
 </p>
 
 <h1 align="center">Papir</h1>
@@ -10,14 +10,14 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/duivesteyn/Papir/releases"><img src="https://img.shields.io/badge/download-macOS-123325?style=flat-square&logo=apple&logoColor=F3EADB" alt="Download Papir for macOS"></a>
-  <a href="https://pypi.org/project/papir-kindle/"><img src="https://img.shields.io/pypi/v/papir-kindle?style=flat-square&color=123325&label=PyPI" alt="papir-kindle on PyPI"></a>
-  <img src="https://img.shields.io/badge/python-3.9%2B-123325?style=flat-square" alt="Python 3.9 or later">
-  <img src="https://img.shields.io/badge/license-MIT-123325?style=flat-square" alt="MIT licence">
+  <a href="https://github.com/duivesteyn/Papir/releases"><img src="https://img.shields.io/badge/download-macOS-1F1B16?style=flat-square&logo=apple&logoColor=F3EADB" alt="Download Papir for macOS"></a>
+  <a href="https://pypi.org/project/papir-kindle/"><img src="https://img.shields.io/pypi/v/papir-kindle?style=flat-square&color=1F1B16&label=PyPI" alt="papir-kindle on PyPI"></a>
+  <img src="https://img.shields.io/badge/python-3.9%2B-1F1B16?style=flat-square" alt="Python 3.9 or later">
+  <img src="https://img.shields.io/badge/license-MIT-1F1B16?style=flat-square" alt="MIT licence">
 </p>
 
 <p align="center">
-  <img src="_screenshots/Papir-hero.png" width="800" alt="Papir for Mac — a forest-green window with a serif papir header, destination pill for a Kindle, and a dashed drop zone reading A little less screen time. Drop something good to read. Choose Documents…">
+  <img src="_screenshots/Papir-hero.png" width="800" alt="Papir for Mac — a parchment window with an ink paper-plane mark beside the serif papir header, a destination card for a Kindle, and a dashed drop zone reading A little less screen time. Drop something good to read. Choose Documents…">
 </p>
 
 Papir is Norwegian for *paper* — with **API** hidden in the middle. It sends PDFs, EPUBs, Word documents, text, HTML, Markdown and images to Kindle using the same private service as Amazon's Send to Kindle app.
@@ -140,11 +140,13 @@ Build environments and generated releases stay local and are ignored by Git. Dow
 
 ## Brand
 
-Folded ivory paper P on forest green (`#123325` / ivory `#F3EADB`). Full spec: [art/Papir-art-style-spec.md](art/Papir-art-style-spec.md). The Mac app uses an on-demand forest-green window and the retained app icon. The CLI's only artwork is 📤/✅ in terminal output.
+**Ink on parchment** in the app (`#1F1B16` on `#F3EADB`), with the ivory paper plane on forest green kept for the app icon (`#123325` / `#F3EADB`). Full spec: [art/Papir-art-style-spec.md](art/Papir-art-style-spec.md). The Mac app uses an on-demand parchment window and an ink plane mark beside its `papir` header; Android shares the same light surfaces. The CLI's only artwork is 📤/✅ in terminal output.
 
 ## Changelog
 
-- Android 0.1.2 2026-11-21 Share-sheet icon follows the Kindle selected in the app (Scribe, Paperwhite, Colorsoft, Oasis, Voyage, Basic, Keyboard, Touch, DX); the launcher mark is the artwork P, resized so launcher masks no longer crop it.
+- Mac/Android/web 2026-11-22 Ink-on-parchment interface: greens removed from window, settings, controls, intake page, extension options and Android surfaces; the app icon keeps the forest-green paper-plane art.
+- macOS/Android/web 2026-11-22 v2 paper-plane icon suite: new app icon, favicons and Android launcher mark; the plane now sits beside the `papir` wordmark in the Mac window header.
+- Android 0.1.2 2026-11-21 Share-sheet icon follows the Kindle selected in the app (Scribe, Paperwhite, Colorsoft, Oasis, Voyage, Basic, Keyboard, Touch, DX); the launcher mark is the artwork plane, resized so launcher masks no longer crop it.
 - Android 0.1.2 2026-11-21 Share feedback card: progress, sent-with-SKU and Retry without opening the notification shade.
 - Android 0.1.1 (unreleased) Browser-first sign-in with share-back/clipboard pickup, paste-friendly in-app fallback, share-sheet sends with SKU/Retry notifications.
 - Android 0.1.0 (unreleased) Share-sheet target, native Kotlin protocol port, foreground sends with SKU/Retry notifications, in-app Amazon sign-in, sideload APK built without Gradle.

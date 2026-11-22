@@ -213,10 +213,10 @@ final class IntakeServer {
     <!doctype html><html><head><meta charset="utf-8"><title>Papir</title>
     <style>
       body{margin:0;height:100vh;display:flex;align-items:center;justify-content:center;
-           background:#123325;color:#F3EADB;font:15px/1.5 -apple-system,sans-serif}
+           background:#F3EADB;color:#1F1B16;font:15px/1.5 -apple-system,sans-serif}
       main{text-align:center;max-width:420px}
       h1{font:600 22px/1.2 Georgia,serif;margin:0 0 8px}
-      p{color:rgba(243,234,219,.75);margin:0}
+      p{color:rgba(31,27,22,.72);margin:0}
     </style></head>
     <body><main><h1 id="t">Connecting to Papir…</h1>
     <p id="m">Handing this browser the key it needs.</p></main></body></html>

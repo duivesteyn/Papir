@@ -297,8 +297,8 @@ class LoginActivity : Activity() {
     private fun showPasteDialog() {
         val input = EditText(this).apply {
             hint = getString(R.string.login_paste_hint)
-            setTextColor(getColor(R.color.papir_ivory))
-            setHintTextColor(getColor(R.color.papir_ivory_dim))
+            setTextColor(getColor(R.color.papir_ink))
+            setHintTextColor(getColor(R.color.papir_ink_dim))
             setPadding(dp(20), dp(12), dp(20), dp(12))
             maxLines = 3
         }

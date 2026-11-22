@@ -615,8 +615,25 @@ struct SendResult: Identifiable {
 }
 
 enum PapirTheme {
-    static let green = Color(red: 18.0 / 255, green: 51.0 / 255, blue: 37.0 / 255)
-    static let ivory = Color(red: 243.0 / 255, green: 234.0 / 255, blue: 219.0 / 255)
+    /// Ink on parchment: warm paper, warm near-black ink, no greens.
+    static let paper = Color(red: 243.0 / 255, green: 234.0 / 255, blue: 219.0 / 255)
+    static let raised = Color(red: 251.0 / 255, green: 246.0 / 255, blue: 236.0 / 255)
+    static let ink = Color(red: 31.0 / 255, green: 27.0 / 255, blue: 22.0 / 255)
+    static let inkDim = Color(red: 107.0 / 255, green: 96.0 / 255, blue: 81.0 / 255)
+    static let rule = Color(red: 216.0 / 255, green: 205.0 / 255, blue: 185.0 / 255)
+    static let error = Color(red: 166.0 / 255, green: 58.0 / 255, blue: 43.0 / 255)
+}
+
+/// Art copied into the bundle by macos/build.sh. Loading by URL keeps the
+/// header and success badge working without an asset catalog.
+enum PapirArt {
+    static let plane: Image = {
+        if let url = Bundle.main.url(forResource: "Papir-Header-Mark", withExtension: "png"),
+           let image = NSImage(contentsOf: url) {
+            return Image(nsImage: image)
+        }
+        return Image(systemName: "paperplane.fill")
+    }()
 }
 
 struct PapirWindowStyle: NSViewRepresentable {
@@ -629,13 +646,13 @@ struct PapirWindowStyle: NSViewRepresentable {
         DispatchQueue.main.async { style(view.window) }
     }
     private func style(_ window: NSWindow?) {
-        window?.backgroundColor = NSColor(red: 18.0 / 255, green: 51.0 / 255, blue: 37.0 / 255, alpha: 1)
+        window?.backgroundColor = NSColor(red: 243.0 / 255, green: 234.0 / 255, blue: 219.0 / 255, alpha: 1)
         window?.styleMask.insert(.fullSizeContentView)
         window?.titlebarAppearsTransparent = true
         window?.titleVisibility = .hidden
         window?.titlebarSeparatorStyle = .none
         window?.isMovableByWindowBackground = true
-        window?.appearance = NSAppearance(named: .darkAqua)
+        window?.appearance = NSAppearance(named: .aqua)
     }
 }
 
@@ -644,9 +661,10 @@ struct PapirSendButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.body.weight(.semibold))
-            .foregroundStyle(PapirTheme.green)
+            .foregroundStyle(PapirTheme.paper)
             .padding(.vertical, 9)
-            .background(PapirTheme.ivory.opacity(configuration.isPressed ? 0.82 : 1), in: RoundedRectangle(cornerRadius: 7))
+            .padding(.horizontal, 16)
+            .background(PapirTheme.ink.opacity(configuration.isPressed ? 0.82 : 1), in: RoundedRectangle(cornerRadius: 7))
             .opacity(isEnabled ? 1 : 0.65)
     }
 }
@@ -654,8 +672,8 @@ struct PapirSendButtonStyle: ButtonStyle {
 struct ContentView: View {
     @EnvironmentObject var sender: Sender
     @State private var hovering = false
-    private let green = PapirTheme.green
-    private let ivory = PapirTheme.ivory
+    private let paper = PapirTheme.paper
+    private let ink = PapirTheme.ink
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
             HStack {
@@ -666,7 +684,8 @@ struct ContentView: View {
                 Button { Task { await sender.refreshDevices() } } label: { Image(systemName: "arrow.clockwise") }
                     .buttonStyle(.plain).help("Refresh device names").disabled(sender.busy)
             }.help(sender.destinationHint).padding(12).frame(maxWidth: .infinity, alignment: .leading)
-                .background(ivory.opacity(0.08), in: RoundedRectangle(cornerRadius: 9))
+                .background(PapirTheme.raised, in: RoundedRectangle(cornerRadius: 9))
+                .overlay(RoundedRectangle(cornerRadius: 9).strokeBorder(PapirTheme.rule, lineWidth: 1))
             ZStack {
                 if sender.busy {
                     SendProgressView().transition(.opacity)
@@ -675,14 +694,15 @@ struct ContentView: View {
                         .transition(.opacity)
                 } else {
                 VStack(spacing: 10) {
-                if sender.pendingDrops > 0 { ProgressView().controlSize(.small).tint(ivory) }
-                Image(systemName: "doc.on.doc").font(.system(size: 30)).foregroundStyle(ivory.opacity(0.72))
+                if sender.pendingDrops > 0 { ProgressView().controlSize(.small).tint(ink) }
+                Image(systemName: "doc.on.doc").font(.system(size: 30)).foregroundStyle(ink.opacity(0.72))
                 Text("A little less screen time.").font(.headline)
-                Text("Drop something good to read.").foregroundStyle(ivory.opacity(0.72))
+                Text("Drop something good to read.").foregroundStyle(ink.opacity(0.72))
                 Button("Choose Documents…", action: sender.chooseFiles)
+                    .buttonStyle(PapirSendButtonStyle())
             }.frame(maxWidth: .infinity).padding(30)
-                .background(hovering ? ivory.opacity(0.12) : .clear)
-                .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(ivory.opacity(0.3), style: StrokeStyle(lineWidth: 1, dash: [5])))
+                .background(hovering ? ink.opacity(0.05) : .clear)
+                .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(ink.opacity(0.22), style: StrokeStyle(lineWidth: 1, dash: [5])))
                 }
             }
             .animation(.easeInOut(duration: 0.25), value: sender.showSuccess)
@@ -692,7 +712,7 @@ struct ContentView: View {
                 }
             if sender.files.isEmpty && (sender.checkingAccount || sender.loadingDevices) {
                 HStack(spacing: 8) {
-                    ProgressView().controlSize(.small).tint(ivory)
+                    ProgressView().controlSize(.small).tint(ink)
                     Text(sender.checkingAccount ? "Checking account…" : "Refreshing devices…").font(.caption)
                 }
             }
@@ -712,11 +732,11 @@ struct ContentView: View {
                     }
                     if sender.files.count == 1 { TextField("Title (use filename by default)", text: $sender.title) }
                     TextField("Author (use CLI default)", text: $sender.author)
-                    Toggle("Convert PDF to Kindle format", isOn: $sender.convert).font(.subheadline)
+                    Toggle("Convert PDF to Kindle format", isOn: $sender.convert).font(.subheadline).tint(ink)
                     Button(action: sender.send) {
                         HStack(spacing: 8) {
                             if sender.busy || sender.checkingAccount || sender.pendingDrops > 0 {
-                                ProgressView().controlSize(.small).tint(green)
+                                ProgressView().controlSize(.small).tint(paper)
                             }
                             Text(sender.busy ? sender.sendProgressText : sender.checkingAccount ? "Checking account…" : "Send \(sender.files.count == 1 ? "Document" : "Documents")")
                         }.frame(maxWidth: .infinity)
@@ -727,20 +747,20 @@ struct ContentView: View {
                 }.textFieldStyle(.roundedBorder)
             }
             if !sender.failures.isEmpty {
-                Text("NEEDS ATTENTION").font(.caption).foregroundStyle(ivory.opacity(0.72))
+                Text("NEEDS ATTENTION").font(.caption).foregroundStyle(ink.opacity(0.72))
                 ForEach(sender.failures) { result in
                     HStack(alignment: .top) {
-                        Image(systemName: result.success ? "checkmark.circle" : "exclamationmark.circle").foregroundStyle(result.success ? ivory : Color(red: 1, green: 0.65, blue: 0.6))
+                        Image(systemName: result.success ? "checkmark.circle" : "exclamationmark.circle").foregroundStyle(result.success ? ink : PapirTheme.error)
                         VStack(alignment: .leading, spacing: 3) {
                             Text(result.name).lineLimit(1)
-                            Text(result.message).font(.caption).foregroundStyle(ivory.opacity(0.72)).textSelection(.enabled)
+                            Text(result.message).font(.caption).foregroundStyle(ink.opacity(0.72)).textSelection(.enabled)
                         }
                     }
                 }
             }
             Divider()
-            Text(sender.status).font(.caption).foregroundStyle(ivory.opacity(0.72)).accessibilityLabel(sender.status)
-        }.padding(.horizontal, 24).padding(.bottom, 24).padding(.top, 10).frame(width: 380).foregroundStyle(ivory).disabled(sender.busy)
+            Text(sender.status).font(.caption).foregroundStyle(ink.opacity(0.72)).accessibilityLabel(sender.status)
+        }.padding(.horizontal, 24).padding(.bottom, 24).padding(.top, 10).frame(width: 380).foregroundStyle(ink).disabled(sender.busy)
             .onOpenURL { sender.add([$0]) }
             .task { await sender.bootstrap() }
     }
@@ -754,10 +774,10 @@ struct SendProgressView: View {
     var body: some View {
         VStack(spacing: 12) {
             ZStack {
-                Circle().fill(PapirTheme.ivory.opacity(0.08))
-                Circle().strokeBorder(PapirTheme.ivory.opacity(0.18), lineWidth: 4)
+                Circle().fill(PapirTheme.ink.opacity(0.08))
+                Circle().strokeBorder(PapirTheme.ink.opacity(0.18), lineWidth: 4)
                 Circle().trim(from: 0, to: 0.28)
-                    .stroke(PapirTheme.ivory, style: StrokeStyle(lineWidth: 4, lineCap: .round))
+                    .stroke(PapirTheme.ink, style: StrokeStyle(lineWidth: 4, lineCap: .round))
                     .rotationEffect(.degrees(animating && !reduceMotion ? 360 : 0))
                     .animation(reduceMotion ? nil : .linear(duration: 1.2).repeatForever(autoreverses: false), value: animating)
                 Image(systemName: "doc.badge.arrow.up")
@@ -770,17 +790,18 @@ struct SendProgressView: View {
             Text(sender.sendProgressText)
                 .font(.title3.weight(.semibold)).monospacedDigit()
             Text(sender.sendingFilename)
-                .font(.caption).foregroundStyle(PapirTheme.ivory.opacity(0.72))
+                .font(.caption).foregroundStyle(PapirTheme.ink.opacity(0.72))
                 .lineLimit(1).truncationMode(.middle)
             ProgressView(value: Double(sender.sendCompleted), total: Double(max(sender.sendTotal, 1)))
-                .tint(PapirTheme.ivory)
+                .tint(PapirTheme.ink)
                 .accessibilityLabel("Documents processed")
                 .accessibilityValue("\(sender.sendCompleted) of \(sender.sendTotal)")
             Text("\(sender.sendCompleted) of \(sender.sendTotal) processed")
-                .font(.caption).monospacedDigit().foregroundStyle(PapirTheme.ivory.opacity(0.72))
+                .font(.caption).monospacedDigit().foregroundStyle(PapirTheme.ink.opacity(0.72))
         }
         .frame(maxWidth: .infinity).padding(24)
-        .background(PapirTheme.ivory.opacity(0.06), in: RoundedRectangle(cornerRadius: 12))
+        .background(PapirTheme.raised, in: RoundedRectangle(cornerRadius: 12))
+        .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(PapirTheme.rule, lineWidth: 1))
         .onAppear { animating = true }
     }
 }
@@ -795,27 +816,81 @@ struct SuccessTick: Shape {
     }
 }
 
+/// Places the plane on the route ring. `progress` is animatable so the plane
+/// travels the arc itself instead of cutting across it on a straight chord.
+private struct PlaneOnArc: ViewModifier, Animatable {
+    var progress: CGFloat
+    let radius: CGFloat
+
+    var animatableData: CGFloat {
+        get { progress }
+        set { progress = newValue }
+    }
+
+    func body(content: Content) -> some View {
+        let angle = Double(progress) * 360
+        let radians = angle * .pi / 180
+        return content
+            .rotationEffect(.degrees(angle + 38))
+            .offset(x: radius * CGFloat(sin(radians)),
+                    y: -radius * CGFloat(cos(radians)))
+    }
+}
+
+/// The delivery badge: the paper plane flies the route that the tick confirms.
+private struct SuccessFlightBadge: View {
+    static let landingProgress: CGFloat = 0.78
+
+    var flight: CGFloat
+    var landed: Bool
+    var drift: Bool
+
+    private let ink = PapirTheme.ink
+    private let diameter: CGFloat = 84
+    private var radius: CGFloat { diameter / 2 - 10 }
+
+    var body: some View {
+        ZStack {
+            Circle().fill(PapirTheme.raised)
+            Circle()
+                .trim(from: 0, to: flight)
+                .stroke(ink.opacity(0.92), style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
+                .rotationEffect(.degrees(-90))
+                .padding(10)
+            SuccessTick()
+                .trim(from: 0, to: landed ? 1 : 0)
+                .stroke(ink, style: StrokeStyle(lineWidth: 4, lineCap: .round, lineJoin: .round))
+                .frame(width: 30, height: 30)
+            PapirArt.plane
+                .resizable()
+                .scaledToFit()
+                .frame(width: 21, height: 17)
+                .modifier(PlaneOnArc(progress: flight, radius: radius))
+                .offset(y: drift ? -1.4 : 0)
+        }
+        .frame(width: diameter, height: diameter)
+        .accessibilityHidden(true)
+    }
+}
+
 struct SendSuccessView: View {
     @EnvironmentObject var sender: Sender
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var appeared = false
-    private let successGreen = Color(red: 0.35, green: 0.85, blue: 0.55)
+    @State private var flight: CGFloat = 0
+    @State private var landed = false
+    @State private var drift = false
+    @State private var flightTask: Task<Void, Never>?
 
     var body: some View {
         VStack(spacing: 10) {
-            ZStack {
-                Circle().fill(successGreen.opacity(0.12))
-                Circle().strokeBorder(successGreen.opacity(0.3), lineWidth: 1)
-                SuccessTick().trim(from: 0, to: appeared || reduceMotion ? 1 : 0)
-                    .stroke(successGreen, style: StrokeStyle(lineWidth: 5, lineCap: .round, lineJoin: .round))
-                    .animation(reduceMotion ? nil : .easeOut(duration: 0.28), value: appeared)
-            }
-            .frame(width: 64, height: 64)
-            .scaleEffect(appeared || reduceMotion ? 1 : 0.55)
-            .animation(reduceMotion ? nil : .spring(response: 0.38, dampingFraction: 0.55), value: appeared)
+            SuccessFlightBadge(flight: flight, landed: landed, drift: drift)
+                .scaleEffect(appeared || reduceMotion ? 1 : 0.72)
+                .opacity(appeared || reduceMotion ? 1 : 0)
+                .animation(reduceMotion ? nil : .spring(response: 0.45, dampingFraction: 0.72), value: appeared)
             Text("Success").font(.title3.weight(.semibold))
             Text("Accepted by service · Device delivery pending")
-                .font(.caption).foregroundStyle(PapirTheme.ivory.opacity(0.72))
+                .font(.caption).foregroundStyle(PapirTheme.ink.opacity(0.72))
             Button(action: sender.resetForNextBatch) {
                 HStack(spacing: 8) {
                     Text("Send More Documents…")
@@ -828,8 +903,24 @@ struct SendSuccessView: View {
         }
         .frame(maxWidth: .infinity).padding(.vertical, 24)
         .accessibilityElement(children: .contain)
-        .onAppear {
-            appeared = true
+        .onAppear(perform: fly)
+        .onDisappear { flightTask?.cancel() }
+    }
+
+    private func fly() {
+        appeared = true
+        guard !reduceMotion else {
+            flight = SuccessFlightBadge.landingProgress
+            landed = true
+            return
+        }
+        flightTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 180_000_000)
+            withAnimation(.easeInOut(duration: 1.05)) { flight = SuccessFlightBadge.landingProgress }
+            try? await Task.sleep(nanoseconds: 1_080_000_000)
+            withAnimation(.spring(response: 0.34, dampingFraction: 0.7)) { landed = true }
+            try? await Task.sleep(nanoseconds: 420_000_000)
+            withAnimation(.easeInOut(duration: 1.8).repeatForever(autoreverses: true)) { drift = true }
         }
     }
 }
@@ -855,7 +946,7 @@ struct SignInView: View {
                 Button("Sign in with Amazon") { Task { await sender.beginSignIn() } }.disabled(sender.authBusy)
             }
             if sender.authBusy { ProgressView().controlSize(.small) }
-            if !sender.authError.isEmpty { Text(sender.authError).font(.caption).foregroundStyle(.red).textSelection(.enabled) }
+            if !sender.authError.isEmpty { Text(sender.authError).font(.caption).foregroundStyle(PapirTheme.error).textSelection(.enabled) }
         }
     }
 }
@@ -863,11 +954,11 @@ struct SignInView: View {
 struct PreferencesView: View {
     @EnvironmentObject var sender: Sender
     @State private var confirmSignOut = false
-    private let ivory = PapirTheme.ivory
+    private let ink = PapirTheme.ink
     var body: some View {
         ScrollView { content }
             .frame(width: 460, height: 560)
-            .foregroundStyle(ivory)
+            .foregroundStyle(ink)
             .textFieldStyle(.roundedBorder)
             .confirmationDialog("Sign out of Papir? This also signs out the CLI on this Mac.", isPresented: $confirmSignOut) {
                 Button("Sign Out", role: .destructive) { Task { await sender.signOut() } }
@@ -884,9 +975,9 @@ struct PreferencesView: View {
                     Toggle("Accept papir:// links", isOn: Binding(
                         get: { sender.intakeEnabled },
                         set: { sender.setIntakeEnabled($0) }
-                    )).tint(ivory)
+                    )).tint(ink)
                     Text("Off by default. Lets a browser, Shortcut or script hand Papir a document to review before sending.")
-                        .font(.caption).foregroundStyle(ivory.opacity(0.72))
+                        .font(.caption).foregroundStyle(ink.opacity(0.72))
                         .fixedSize(horizontal: false, vertical: true)
                     if sender.intakeEnabled {
                         VStack(alignment: .leading, spacing: 6) {
@@ -896,19 +987,19 @@ struct PreferencesView: View {
                                     .textSelection(.enabled)
                                 Text(sender.intakeRunning ? "listening" : "not listening")
                                     .font(.caption2)
-                                    .foregroundStyle(ivory.opacity(0.6))
+                                    .foregroundStyle(ink.opacity(0.6))
                                 Spacer()
                                 Button("Connect Browser") { sender.connectBrowser() }
                                     .buttonStyle(.plain).font(.caption)
                             }
                             Text(sender.intakeToken)
                                 .font(.system(.caption2, design: .monospaced))
-                                .foregroundStyle(ivory.opacity(0.72))
+                                .foregroundStyle(ink.opacity(0.72))
                                 .textSelection(.enabled)
                                 .lineLimit(2)
                                 .fixedSize(horizontal: false, vertical: true)
                         Text("Click Connect Browser, then confirm in the tab that opens.")
-                            .font(.caption2).foregroundStyle(ivory.opacity(0.55))
+                            .font(.caption2).foregroundStyle(ink.opacity(0.55))
                         }
                         .padding(.top, 2)
                     }
@@ -916,17 +1007,17 @@ struct PreferencesView: View {
                 if sender.showsAccountSettings {
                     VStack(alignment: .leading, spacing: 12) {
                         HStack {
-                            Text("Account").foregroundStyle(ivory.opacity(0.72))
+                            Text("Account").foregroundStyle(ink.opacity(0.72))
                             Spacer()
                             Text(sender.accountName.isEmpty ? "Connected" : sender.accountName)
                                 .lineLimit(1).truncationMode(.tail)
                         }.font(.subheadline)
                         VStack(alignment: .leading, spacing: 5) {
-                            Text("Default author").font(.caption).foregroundStyle(ivory.opacity(0.72))
+                            Text("Default author").font(.caption).foregroundStyle(ink.opacity(0.72))
                             TextField("Your name", text: $sender.defaultAuthor)
                         }
                         VStack(alignment: .leading, spacing: 5) {
-                            Text("Default destination").font(.caption).foregroundStyle(ivory.opacity(0.72))
+                            Text("Default destination").font(.caption).foregroundStyle(ink.opacity(0.72))
                             Picker("", selection: $sender.defaultDestination) {
                                 Text("All devices").tag("all")
                                 Text("Kindle library only").tag("library")
@@ -940,26 +1031,26 @@ struct PreferencesView: View {
                             Button("Save Defaults") { Task { await sender.saveDefaults() } }
                                 .buttonStyle(.plain).fontWeight(.semibold)
                             Button("Refresh Devices") { Task { await sender.refreshDevices() } }
-                                .buttonStyle(.plain).foregroundStyle(ivory.opacity(0.72))
+                                .buttonStyle(.plain).foregroundStyle(ink.opacity(0.72))
                         }.disabled(sender.checkingAccount || sender.authBusy || sender.busy)
-                        Text("These defaults are shared with the Python CLI.").font(.caption).foregroundStyle(ivory.opacity(0.72))
+                        Text("These defaults are shared with the Python CLI.").font(.caption).foregroundStyle(ink.opacity(0.72))
                         Button("Sign Out…") { confirmSignOut = true }
                             .buttonStyle(.plain)
-                            .foregroundStyle(Color(red: 1, green: 0.65, blue: 0.6))
+                            .foregroundStyle(PapirTheme.error)
                             .disabled(sender.checkingAccount || sender.busy || sender.authBusy)
                     }
                 } else if sender.checkingAccount {
                     HStack(spacing: 8) {
-                        ProgressView().controlSize(.small).tint(ivory)
-                        Text("Checking account…").font(.caption).foregroundStyle(ivory.opacity(0.72))
+                        ProgressView().controlSize(.small).tint(ink)
+                        Text("Checking account…").font(.caption).foregroundStyle(ink.opacity(0.72))
                     }
                 } else { SignInView().environmentObject(sender) }
                 if sender.signedIn && !sender.authError.isEmpty {
-                    Text(sender.authError).foregroundStyle(Color(red: 1, green: 0.65, blue: 0.6)).font(.caption).textSelection(.enabled)
+                    Text(sender.authError).foregroundStyle(PapirTheme.error).font(.caption).textSelection(.enabled)
                 }
                 VStack(alignment: .leading, spacing: 10) {
                     Text(sender.usesBundledEngine ? "Python engine included · No separate installation required" : "Using an external engine")
-                        .font(.caption).foregroundStyle(ivory.opacity(0.72))
+                        .font(.caption).foregroundStyle(ink.opacity(0.72))
                     DisclosureGroup("Advanced") {
                         VStack(alignment: .leading, spacing: 8) {
                             Text(sender.executable).font(.caption).textSelection(.enabled)
@@ -969,12 +1060,12 @@ struct PreferencesView: View {
                                 Button("Use bundled engine") { sender.executable = sender.bundledExecutable; Task { await sender.bootstrap() } }
                             }.disabled(sender.checkingAccount || sender.busy || sender.authBusy)
                             TextField("Destination override for this session", text: $sender.target)
-                            Text("Leave empty to use your saved default.").font(.caption).foregroundStyle(ivory.opacity(0.72))
+                            Text("Leave empty to use your saved default.").font(.caption).foregroundStyle(ink.opacity(0.72))
                         }.padding(.top, 4)
-                    }.tint(ivory)
+                    }.tint(ink)
                 }
                 Text("Papir \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "")")
-                    .font(.caption2).foregroundStyle(ivory.opacity(0.4))
+                    .font(.caption2).foregroundStyle(ink.opacity(0.4))
                     .padding(.top, 4)
             }
             .padding(24)
@@ -994,21 +1085,21 @@ struct AboutView: View {
             }
             VStack(spacing: 4) {
                 Text("papir").font(.system(size: 30, weight: .semibold, design: .serif))
-                Text("Version \(version)").font(.caption).foregroundStyle(PapirTheme.ivory.opacity(0.72))
+                Text("Version \(version)").font(.caption).foregroundStyle(PapirTheme.ink.opacity(0.72))
             }
             Text("Created by Benjamin M. Duivesteyn").font(.headline)
             Text("I created Papir as a lightweight, open-source, unintrusive way to send documents to my Kindle from the command line.")
                 .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
             Text("The native Mac app brings the same Python CLI to a simple, on-demand window.")
                 .font(.subheadline).multilineTextAlignment(.center)
-                .foregroundStyle(PapirTheme.ivory.opacity(0.72))
+                .foregroundStyle(PapirTheme.ink.opacity(0.72))
             Link("Source code · MIT licence", destination: URL(string: "https://github.com/duivesteyn/papir")!)
-                .tint(PapirTheme.ivory)
+                .tint(PapirTheme.ink)
         }.padding(32).frame(width: 360)
-            .foregroundStyle(PapirTheme.ivory)
-            .background(PapirTheme.green.ignoresSafeArea())
+            .foregroundStyle(PapirTheme.ink)
+            .background(PapirTheme.paper.ignoresSafeArea())
             .background(PapirWindowStyle())
-            .preferredColorScheme(.dark)
+            .preferredColorScheme(.light)
     }
 }
 
@@ -1036,9 +1127,16 @@ struct PapirMainView: View {
     var body: some View {
         VStack(spacing: 0) {
             ZStack {
-                Text("papir")
-                    .font(.system(size: 24, weight: .semibold, design: .serif))
-                    .frame(maxWidth: .infinity)
+                HStack(spacing: 7) {
+                    PapirArt.plane
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 24, height: 19)
+                        .accessibilityHidden(true)
+                    Text("papir")
+                        .font(.system(size: 24, weight: .semibold, design: .serif))
+                }
+                .frame(maxWidth: .infinity)
                 HStack {
                     Spacer()
                     SettingsLink { Image(systemName: "slider.horizontal.3") }.help("Settings")
@@ -1061,9 +1159,9 @@ struct PapirMainView: View {
         .onPreferenceChange(ContentHeightKey.self) { height in
             if height > 0 { contentHeight = ceil(height) }
         }
-        .background(PapirTheme.green.ignoresSafeArea())
+        .background(PapirTheme.paper.ignoresSafeArea())
         .background(PapirWindowStyle())
-        .preferredColorScheme(.dark)
+        .preferredColorScheme(.light)
     }
 }
 
@@ -1081,9 +1179,9 @@ struct PapirMainView: View {
 
         Settings {
             PreferencesView().environmentObject(sender)
-                .background(PapirTheme.green.ignoresSafeArea())
+                .background(PapirTheme.paper.ignoresSafeArea())
                 .background(PapirWindowStyle())
-                .preferredColorScheme(.dark)
+                .preferredColorScheme(.light)
         }.windowStyle(.hiddenTitleBar)
     }
 }

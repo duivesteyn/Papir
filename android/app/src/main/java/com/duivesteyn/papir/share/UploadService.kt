@@ -147,6 +147,7 @@ class UploadService : Service() {
         }
         return Notification.Builder(this, PapirApp.CHANNEL_SENDING)
             .setSmallIcon(R.drawable.ic_stat_papir)
+            .setColor(getColor(R.color.papir_ink_dim))
             .setContentTitle("Sending to Kindle")
             .setContentText("$counter$title · $detail")
             .setProgress(100, percent ?: 0, percent == null)
@@ -172,6 +173,7 @@ class UploadService : Service() {
     ) {
         val builder = Notification.Builder(this, PapirApp.CHANNEL_RESULTS)
             .setSmallIcon(R.drawable.ic_stat_papir)
+            .setColor(getColor(R.color.papir_ink_dim))
             .setAutoCancel(true)
             .setCategory(Notification.CATEGORY_STATUS)
             .setContentIntent(openAppIntent())

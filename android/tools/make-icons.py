@@ -3,7 +3,7 @@
 
 Two families come out of here:
 
-* the Papir mark, a folded-paper P on forest green, sized for Android's
+* the Papir mark, an ivory paper plane on forest green, sized for Android's
   adaptive-icon safe zone so launchers stop cropping it;
 * one silhouette per Kindle family (Scribe, Paperwhite, Colorsoft, Oasis,
   Voyage, Basic, Keyboard, Touch, DX, plus a generic slab for anything else).
@@ -47,13 +47,13 @@ TAUPE = (201, 191, 169)
 # Adaptive icon geometry: a 108dp canvas of which the interior 66dp circle is
 # always visible (radius 0.305 of the canvas), and the launcher's own mask, at
 # most 72dp, reaches 0.333. Keep every mark inside that radius: the launcher
-# icon used to sit at 0.39, which is why phones cut the top and bottom off the P.
+# icon used to sit at 0.39, which is why phones cut the top and bottom off the mark.
 MASK_RADIUS = 0.333
 
-# The app mark is the launcher's existing P, taken as it is: art/Iconi keeps the
-# approved glyph (matte and shading and all), and this script only resizes it. It
-# used to be scaled to 60% of the canvas *width* — 70% of its height — which ran
-# under every launcher mask and got cropped. At 0.315 of the canvas it fits.
+# The app mark is the plane from art/Iconi/Papir-launcher-glyph-432.png, taken as
+# it is: that file is the suite art fitted to 0.315 of the canvas, and this script
+# only resizes it. Earlier artwork was scaled to 60% of the canvas *width* (70% of
+# its height), which ran under every launcher mask and got cropped.
 LAUNCHER_GLYPH = ROOT / "art" / "Iconi" / "Papir-launcher-glyph-432.png"
 LAUNCHER_CANVAS = 432   # the glyph asset's own canvas
 PAPIR_RADIUS = 0.315
@@ -118,7 +118,7 @@ class Mark:
             self.rounded(box, radius, self.punch)
 
     def wedge(self, box, start, end, colour=IVORY):
-        """Half-disc (or slice) fill; used for the P's bowl and counter."""
+        """Half-disc (or slice) fill, for rounded device marks."""
         self.md.pieslice(_px(box), start, end, fill=255)
         self.cd.pieslice(_px(box), start, end, fill=colour)
 
@@ -215,7 +215,7 @@ _ARTWORK = None
 
 
 def artwork():
-    """The approved launcher glyph as (mask, colour), cropped to its ink."""
+    """The launcher glyph as (mask, colour), cropped to its ink."""
     global _ARTWORK
     if _ARTWORK is None:
         glyph = Image.open(LAUNCHER_GLYPH).convert("RGBA")
@@ -233,10 +233,10 @@ def resample(image, size):
 
 
 def papir_layer(size=LAUNCHER_CANVAS, tint=None):
-    """The launcher's P on transparency, fitted to the safe circle.
+    """The plane on transparency, fitted to the safe circle.
 
-    Nothing is redrawn: same matte, same shading, same crop. It is fitted to
-    0.315 of the canvas instead of 60% of its width, which is the only change.
+    Nothing is redrawn: same art, same crop. It is fitted to 0.315 of the
+    canvas instead of 60% of its width, which is the only change.
     """
     mask, colour = artwork()
     base = min(size, LAUNCHER_CANVAS)
@@ -581,7 +581,7 @@ def build_pack():
             """\
             Kindle app-icon pack for Papir — generated, no stock art.
 
-            The papir mark is the launcher's approved glyph from
+            The papir mark is the plane from
             art/Iconi/Papir-launcher-glyph-432.png, unchanged except for its size:
             fitted to 0.315 of the 108dp canvas so launcher masks stop cropping
             it. The Kindle silhouettes are drawn from scratch by
@@ -602,7 +602,7 @@ def build_pack():
             Each Kindle folder holds the transparent glyph (…-glyph-1024.png),
             the same glyph on the forest field (…-on-forest-1024.png) and baked
             tiles at 16, 32, 64, 128, 256, 512 and 1024 px. The papir folder stops
-            at 432 px: that is the resolution of the approved launcher glyph, and
+            at 432 px: that is the resolution of the launcher glyph, and
             nothing here upsamples it. `android/` holds what the app
             consumes: the 432 px adaptive-icon foregrounds (66dp safe-zone
             padding, so launcher masks never crop them) and the matching
