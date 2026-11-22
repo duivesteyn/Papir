@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="_screenshots/Papir-256.png" width="128" alt="Papir icon — ivory paper plane on forest green">
+  <img src="_screenshots/Papir-256.png" width="128" alt="Papir icon — ivory paper plane on warm ink">
 </p>
 
 <h1 align="center">Papir</h1>
@@ -140,10 +140,11 @@ Build environments and generated releases stay local and are ignored by Git. Dow
 
 ## Brand
 
-**Ink on parchment** in the app (`#1F1B16` on `#F3EADB`), with the ivory paper plane on forest green kept for the app icon (`#123325` / `#F3EADB`). Full spec: [art/Papir-art-style-spec.md](art/Papir-art-style-spec.md). The Mac app uses an on-demand parchment window and an ink plane mark beside its `papir` header; Android shares the same light surfaces. The CLI's only artwork is 📤/✅ in terminal output.
+**Ink on parchment** in the app (`#1F1B16` on `#F3EADB`), with the ivory paper plane on warm ink for the app icon (`#1F1B16` / `#F6EFE3`). Full spec: [art/Papir-art-style-spec.md](art/Papir-art-style-spec.md). The Mac app uses an on-demand parchment window and an ink plane mark beside its `papir` header; Android shares the same light surfaces. The CLI's only artwork is 📤/✅ in terminal output.
 
 ## Changelog
 
+- macOS 2026-11-22 Mac app icon retoned from forest green to warm ink; the paper-plane artwork is unchanged.
 - Mac/Android/web 2026-11-22 Ink-on-parchment interface: greens removed from window, settings, controls, intake page, extension options and Android surfaces; the app icon keeps the forest-green paper-plane art.
 - macOS/Android/web 2026-11-22 v2 paper-plane icon suite: new app icon, favicons and Android launcher mark; the plane now sits beside the `papir` wordmark in the Mac window header.
 - Android 0.1.2 2026-11-21 Share-sheet icon follows the Kindle selected in the app (Scribe, Paperwhite, Colorsoft, Oasis, Voyage, Basic, Keyboard, Touch, DX); the launcher mark is the artwork plane, resized so launcher masks no longer crop it.

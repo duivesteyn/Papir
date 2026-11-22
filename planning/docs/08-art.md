@@ -14,7 +14,8 @@ The source of truth is `art/` at the repository root.
 - `art/Papir-art-style-spec.md`: colours, geometry and usage rules.
 
 The Mac and Android interfaces now use ink `#1F1B16` on parchment `#F3EADB`;
-the suite's forest green remains only inside the app icon and launcher art. The master and fixed exports remain useful even
+the Mac app icon is retoned to warm ink; the Android launcher art still uses
+the suite's forest field. The master and fixed exports remain useful even
 though the menu bar proposal was dropped. Change master artwork first, then
 regenerate exports. The small copy in `_screenshots/` is for README display; it
 is not the editable master.

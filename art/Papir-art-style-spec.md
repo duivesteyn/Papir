@@ -7,34 +7,37 @@ Spec lives here, next to the art. Code repos reference it; nothing is
 duplicated except `_screenshots/Papir-256.png` in the CLI repo (README header).
 
 > Current scope: Python CLI plus an on-demand native Mac app. The Mac window
-> uses forest green and ivory. Menu bar glyph guidance is retained for reference;
+> uses warm ink on parchment. Menu bar glyph guidance is retained for reference;
 > a resident menu bar app is not part of the product.
 
 ## 1. Identity
 
-Ivory paper **plane** with ruled lines on a forest-green field, transparent
+Ivory paper **plane** with ruled lines on a warm ink field, transparent
 outer corners (macOS applies the rounded-rect mask — never bake rounding into
 exports). One mark, two colours, no words in the mark. Calm, reliable, productive.
 
 Norwegian *papir* = paper. The plane reads as paper first, travel second: a
 document on its way to the reader.
 
-## 2. Palette (from the v2 suite's `colors.json`, authoritative for the art)
+## 2. Palette (current master plus the v2 suite's `colors.json`)
 
 | Role | Hex | Use |
 |---|---|---|
-| Forest green | `#122E21` | Icon field, headers, dmg tint |
+| Ink field | `#1F1B16` | App-icon field (1024 master) |
+| Forest green | `#122E21` | Archived v2 suite field; Android launcher art |
 | Pine leaf | `#2A4D3A` | Subtle top highlight, elevated cards |
 | Midnight green | `#0D1F17` | Dark-mode surface |
 | Parchment cream | `#F6EFE3` | Paper plane, light surfaces, CTA buttons |
 | Warm terracotta | `#D96B43` | Reserved accent; never on the mark |
 
 The Mac and Android interfaces use warm ink `#1F1B16` on parchment `#F3EADB`
-with rules at `#D8CDB9`; no green appears in app chrome. The suite's forest
-green remains only inside the app icon and its derived launcher art.
+with rules at `#D8CDB9`; no green appears in Mac app chrome or the Mac app
+icon. The archived v2 suite keeps its forest edition, and the Android launcher
+art still uses that field until it is retoned.
 
-Rules: never place cream text on cream; green field is never recoloured
-(no seasonal variants). System colours (SF Blue links, traffic lights) may
+Rules: never place cream text on cream; the icon field is not retoned per
+season or variant (the ink master is a one-off rebrand of the suite's forest
+edition). System colours (SF Blue links, traffic lights) may
 appear in chrome but never *on* brand surfaces. Nothing Amazon-adjacent:
 no Amazon orange, no smile arrows, no "Kindle" wordmark anywhere near the art.
 
@@ -112,7 +115,7 @@ no Amazon orange, no smile arrows, no "Kindle" wordmark anywhere near the art.
 
 ## 9. Disk image & installer — FUTURE
 
-- `Papir.dmg` background: forest green at ≤12% alpha over system canvas,
+- `Papir.dmg` background: warm ink at ≤12% alpha over system canvas,
   ivory directional cue toward `/Applications`, app icon per §4 clearspace.
 - No license-agreement-on-mount; drag-install only.
 

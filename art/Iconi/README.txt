@@ -1,11 +1,11 @@
 Papir — paper-plane icon
 
-Ivory paper plane with ruled lines on forest green, with transparent outer
-corners. The delivered suite this folder is built from is archived at
+Ivory paper plane with ruled lines on warm ink, with transparent outer
+corners. The delivered suite this folder is derived from is archived at
 art/Papir-macOS-IconSuite-v2.zip.
 
 Files
-- Papir-master-1024.png: original artwork from the suite, 1024 × 1024 pixels.
+- Papir-master-1024.png: current artwork, 1024 × 1024 (suite plane retoned to ink).
 - Papir-1024.png through Papir-16.png: exports from the same master.
 - Papir-Header-Mark.png: the plane as an ink silhouette on transparency, for the
   parchment app header and success badge.
