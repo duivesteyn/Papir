@@ -40,7 +40,7 @@ struct SendResult: Identifiable {
 }
 
 @MainActor final class Sender: ObservableObject {
-    @Published var files: [URL] = []
+    @Published var files: [URL] = [] { didSet { if !files.isEmpty { startSilentAuthCheck() } } }
     @Published var title = ""
     @Published var author = ""
     @Published var target = ""
@@ -51,8 +51,7 @@ struct SendResult: Identifiable {
     @Published private(set) var sendTotal = 0
     @Published private(set) var sendCompleted = 0
     @Published private(set) var sendingFilename = ""
-    @Published private(set) var preflighting = false
-    var sendProgressText: String { preflighting ? "Checking authentication…" : "Sending \(min(sendCompleted + 1, sendTotal))/\(sendTotal) \(sendTotal == 1 ? "document" : "documents")" }
+    var sendProgressText: String { "Sending \(min(sendCompleted + 1, sendTotal))/\(sendTotal) \(sendTotal == 1 ? "document" : "documents")" }
     @Published private var deviceError = false
     private var deviceRequest = UUID()
 
@@ -261,6 +260,9 @@ struct SendResult: Identifiable {
         }
     }
     private var checkingAccountInFlight = false
+    private var authCheckTask: Task<Void, Never>?
+    private var authCheckedAt: Date?
+    private var authGeneration = 0
     func bootstrap() async {
         guard !checkingAccountInFlight else { return }
         checkingAccountInFlight = true
@@ -283,8 +285,47 @@ struct SendResult: Identifiable {
             checkingAccount = false
         } catch { authError = error.localizedDescription }
     }
+
+    /// Warm the live auth probe in the background so pressing Send never has
+    /// to announce an auth check. Failures stay silent here; the send path
+    /// retries them and only surfaces an error when it actually blocks a send.
+    private func startSilentAuthCheck() {
+        guard signedIn, !files.isEmpty, authCheckTask == nil else { return }
+        if let checkedAt = authCheckedAt, Date().timeIntervalSince(checkedAt) < 300 { return }
+        let generation = authGeneration
+        authCheckTask = Task { @MainActor in
+            defer { authCheckTask = nil }
+            do {
+                let reply = try await bridge(["action": "preflight"])
+                guard generation == authGeneration else { return }
+                applyAccount(reply)
+                authCheckedAt = reply.signed_in == true ? Date() : nil
+            } catch {
+                // Offline or service trouble is not worth interrupting review;
+                // send() will run the check again on the critical path.
+            }
+        }
+    }
+
+    @discardableResult
+    private func runPreflight() async throws -> BridgeReply {
+        let reply = try await bridge(["action": "preflight"])
+        applyAccount(reply)
+        authCheckedAt = reply.signed_in == true ? Date() : nil
+        return reply
+    }
+
+    /// Reuses a recent background check, waits for one in flight, or runs a
+    /// fresh probe — without any user-facing "checking" state.
+    private func ensureAuthChecked() async throws {
+        if let task = authCheckTask { await task.value }
+        if let checkedAt = authCheckedAt, Date().timeIntervalSince(checkedAt) < 600 { return }
+        _ = try await runPreflight()
+    }
+
     func beginSignIn() async {
         guard !authBusy, !signedIn else { return }
+        authCheckTask?.cancel(); authCheckTask = nil; authGeneration += 1
         authBusy = true; authError = ""; redirect = ""; verifier = ""
         defer { authBusy = false }
         do {
@@ -303,12 +344,14 @@ struct SendResult: Identifiable {
             let reply = try await bridge(["action": "login_finish", "redirect": redirect, "verifier": verifier])
             redirect = ""; verifier = ""; signinURL = nil; awaitingRedirect = false
             applyAccount(reply)
+            authCheckedAt = nil
             await refreshDevices()
+            startSilentAuthCheck()
         } catch { authError = error.localizedDescription }
     }
     func cancelSignIn() { redirect = ""; verifier = ""; signinURL = nil; awaitingRedirect = false; authError = "" }
     func saveDefaults() async {
-        guard !checkingAccount, !authBusy, signedIn, !busy else { return }
+        guard !authBusy, signedIn, !busy else { return }
         authBusy = true; authError = ""
         defer { authBusy = false }
         do {
@@ -317,10 +360,12 @@ struct SendResult: Identifiable {
         } catch { authError = error.localizedDescription }
     }
     func signOut() async {
-        guard !checkingAccount, !authBusy, !busy else { return }
+        guard !authBusy, !busy else { return }
         authBusy = true; authError = ""
         defer { authBusy = false }
         do {
+            authCheckTask?.cancel(); authCheckTask = nil; authGeneration += 1
+            authCheckedAt = nil
             applyAccount(try await bridge(["action": "logout"]))
             clearDestinationCache(); target = ""; showSuccess = false; cancelSignIn()
         } catch { authError = error.localizedDescription }
@@ -515,7 +560,7 @@ struct SendResult: Identifiable {
         status = "Ready when you are"
     }
     func send() {
-        guard !checkingAccount, !busy, !authBusy, pendingDrops == 0, signedIn, !files.isEmpty else { return }
+        guard !busy, !authBusy, pendingDrops == 0, signedIn, !files.isEmpty else { return }
         guard FileManager.default.isExecutableFile(atPath: executable) else {
             status = "Choose your installed papir CLI in Settings first."
             return
@@ -527,25 +572,22 @@ struct SendResult: Identifiable {
         sendCompleted = 0
         sendingFilename = pending[0].lastPathComponent
         busy = true
-        preflighting = true
-        status = "Checking authentication…"
         // Capture this batch's options before the first suspension.
         let batchTitle = title, batchAuthor = author, batchTarget = target, batchConvert = convert
         Task {
-            defer { preflighting = false; busy = false }
+            defer { busy = false }
             do {
-                let reply = try await bridge(["action": "preflight"])
-                applyAccount(reply)
+                try await ensureAuthChecked()
                 guard signedIn else {
                     status = "Sign in to send your documents."
                     return
                 }
             } catch {
+                // Only now — when auth actually blocks the send — do we say so.
                 status = "Authentication check failed. Your documents are ready to retry."
                 failures = [SendResult(name: "Before sending", success: false, message: error.localizedDescription)]
                 return
             }
-            preflighting = false
             for file in pending {
                 sendingFilename = file.lastPathComponent
                 status = "Sending \(file.lastPathComponent)…"
@@ -710,10 +752,10 @@ struct ContentView: View {
                 .onDrop(of: [UTType.fileURL.identifier], isTargeted: $hovering) { providers in
                     sender.acceptDrop(providers)
                 }
-            if sender.files.isEmpty && (sender.checkingAccount || sender.loadingDevices) {
+            if sender.files.isEmpty && sender.loadingDevices {
                 HStack(spacing: 8) {
                     ProgressView().controlSize(.small).tint(ink)
-                    Text(sender.checkingAccount ? "Checking account…" : "Refreshing devices…").font(.caption)
+                    Text("Refreshing devices…").font(.caption)
                 }
             }
             if !sender.checkingAccount && !sender.signedIn {
@@ -735,15 +777,15 @@ struct ContentView: View {
                     Toggle("Convert PDF to Kindle format", isOn: $sender.convert).font(.subheadline).tint(ink)
                     Button(action: sender.send) {
                         HStack(spacing: 8) {
-                            if sender.busy || sender.checkingAccount || sender.pendingDrops > 0 {
+                            if sender.busy || sender.pendingDrops > 0 {
                                 ProgressView().controlSize(.small).tint(paper)
                             }
-                            Text(sender.busy ? sender.sendProgressText : sender.checkingAccount ? "Checking account…" : "Send \(sender.files.count == 1 ? "Document" : "Documents")")
+                            Text(sender.busy ? sender.sendProgressText : "Send \(sender.files.count == 1 ? "Document" : "Documents")")
                         }.frame(maxWidth: .infinity)
                     }.buttonStyle(PapirSendButtonStyle())
                         .keyboardShortcut(.return, modifiers: .command)
                         .help("Send \(sender.files.count == 1 ? "document" : "documents") (⌘↩)")
-                        .disabled(sender.checkingAccount || !sender.signedIn || sender.authBusy || sender.pendingDrops > 0)
+                        .disabled(!sender.signedIn || sender.authBusy || sender.pendingDrops > 0)
                 }.textFieldStyle(.roundedBorder)
             }
             if !sender.failures.isEmpty {
@@ -1040,10 +1082,7 @@ struct PreferencesView: View {
                             .disabled(sender.checkingAccount || sender.busy || sender.authBusy)
                     }
                 } else if sender.checkingAccount {
-                    HStack(spacing: 8) {
-                        ProgressView().controlSize(.small).tint(ink)
-                        Text("Checking account…").font(.caption).foregroundStyle(ink.opacity(0.72))
-                    }
+                    EmptyView()
                 } else { SignInView().environmentObject(sender) }
                 if sender.signedIn && !sender.authError.isEmpty {
                     Text(sender.authError).foregroundStyle(PapirTheme.error).font(.caption).textSelection(.enabled)
