@@ -144,6 +144,7 @@ Build environments and generated releases stay local and are ignored by Git. Dow
 
 ## Changelog
 
+- macOS 2026-11-22 Background auth probe: the account is verified silently as soon as a document is staged, so Send no longer announces an auth check. Errors surface only when the check blocks a send.
 - Mac/Android/web 2026-11-22 Ink-on-parchment interface: greens removed from window, settings, controls, intake page, extension options and Android surfaces; the app icon keeps the forest-green paper-plane art.
 - macOS/Android/web 2026-11-22 v2 paper-plane icon suite: new app icon, favicons and Android launcher mark; the plane now sits beside the `papir` wordmark in the Mac window header.
 - Android 0.1.2 2026-11-21 Share-sheet icon follows the Kindle selected in the app (Scribe, Paperwhite, Colorsoft, Oasis, Voyage, Basic, Keyboard, Touch, DX); the launcher mark is the artwork plane, resized so launcher masks no longer crop it.
