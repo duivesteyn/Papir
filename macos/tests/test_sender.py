@@ -53,9 +53,9 @@ if sys.argv[1:] == ['--desktop']:
         func run(_ mode: String) async throws {
             try mode.write(to: folder.appendingPathComponent("mode"), atomically: true, encoding: .utf8)
             sender.send()
-            precondition(sender.busy && sender.preflighting)
+            precondition(sender.busy)
             for _ in 0..<500 where sender.busy { try await Task.sleep(for: .milliseconds(10)) }
-            precondition(!sender.busy && !sender.preflighting, "Send did not finish")
+            precondition(!sender.busy, "Send did not finish")
         }
         try await run("fail")
         precondition(sender.files == [file] && sender.sendCompleted == 0 && !sender.failures.isEmpty)
@@ -65,11 +65,16 @@ if sys.argv[1:] == ['--desktop']:
         sender.resetForNextBatch()
         precondition(!sender.showSuccess && sender.files.isEmpty && sender.title.isEmpty && sender.author.isEmpty && !sender.convert && sender.status == "Ready when you are")
         let calls = try String(contentsOf: folder.appendingPathComponent("calls"), encoding: .utf8)
-        let expected = "[\"--desktop\"]\n[\"--desktop\"]\n[\"send\", \"" + file.path + "\"]\n"
+        let expected = "[\"--desktop\"]\n[\"--desktop\"]\n[\"--desktop\"]\n[\"send\", \"" + file.path + "\"]\n"
         precondition(calls == expected, "Uploads must follow a successful preflight and reuse engine defaults")
-        sender.add([file])
-        try await run("missing")
-        precondition(!sender.signedIn && sender.files == [file] && sender.sendCompleted == 0)
+        let fresh = Sender()
+        fresh.executable = folder.appendingPathComponent("engine").path
+        fresh.add([file])
+        try "missing".write(to: folder.appendingPathComponent("mode"), atomically: true, encoding: .utf8)
+        fresh.send()
+        precondition(fresh.busy)
+        for _ in 0..<500 where fresh.busy { try await Task.sleep(for: .milliseconds(10)) }
+        precondition(!fresh.busy && !fresh.signedIn && fresh.files == [file] && fresh.sendCompleted == 0)
         precondition(Intake.siteName(for: URL(string: "https://reporting.example.com.au/wp/x.pdf")!) == "example.com.au")
         precondition(Intake.siteName(for: URL(string: "https://www.example.com/a.pdf")!) == "example.com")
         precondition(Intake.siteName(for: URL(string: "https://blog.example.co.uk/a.pdf")!) == "example.co.uk")

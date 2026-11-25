@@ -3,7 +3,7 @@
 
 Two families come out of here:
 
-* the Papir mark, an ivory paper plane on forest green, sized for Android's
+* the Papir mark, an ivory paper plane on warm ink, sized for Android's
   adaptive-icon safe zone so launchers stop cropping it;
 * one silhouette per Kindle family (Scribe, Paperwhite, Colorsoft, Oasis,
   Voyage, Basic, Keyboard, Touch, DX, plus a generic slab for anything else).
@@ -38,9 +38,9 @@ SS = 4            # supersampling factor
 PIX = S * SS
 
 IVORY = (243, 234, 219)
-FOREST = (18, 51, 37)
+INK = (31, 27, 22)
 WHITE = (255, 255, 255)
-SAGE = (127, 168, 142)
+CLAY = (186, 133, 98)
 MIST = (191, 214, 208)
 TAUPE = (201, 191, 169)
 
@@ -97,7 +97,7 @@ class Mark:
         self.colour = Image.new("RGB", (PIX, PIX), base)
         self.cd = ImageDraw.Draw(self.colour)
         # What a "screen" is made of: transparent for an adaptive foreground,
-        # forest when the mark sits on a baked green tile.
+        # warm ink when the mark sits on a baked ink tile.
         self.punch = punch
 
     # -- primitives ---------------------------------------------------------
@@ -253,7 +253,7 @@ def papir_layer(size=LAUNCHER_CANVAS, tint=None):
 
 
 def papir_icon(size=LAUNCHER_CANVAS):
-    """The forest tile with the P — the app's own icon."""
+    """The warm ink tile with the P — the app's own icon."""
     base = min(size, LAUNCHER_CANVAS)
     big = base * 4
     corners = Image.new("L", (big, big), 0)
@@ -261,7 +261,7 @@ def papir_icon(size=LAUNCHER_CANVAS):
         (0, 0, big - 1, big - 1), radius=round(big * 0.2237), fill=255
     )
     tile = Image.new("RGBA", (base, base), (0, 0, 0, 0))
-    tile.paste(Image.new("RGBA", (base, base), FOREST + (255,)), (0, 0),
+    tile.paste(Image.new("RGBA", (base, base), INK + (255,)), (0, 0),
                corners.resize((base, base), Image.LANCZOS))
     tile.alpha_composite(papir_layer(base))
     return tile if base == size else resample(tile, size)
@@ -326,7 +326,7 @@ def kindle_colorsoft(m):
     inset = 26
     band_top, band_h = y0 + inset, bh * 0.48
     band_w = (bw - inset * 2) / 3
-    for index, colour in enumerate((SAGE, MIST, TAUPE)):
+    for index, colour in enumerate((CLAY, MIST, TAUPE)):
         left = x0 + inset + index * band_w
         m.rounded((left, band_top, left + band_w, band_top + band_h), 8, colour)
     for i, ratio in enumerate((0.72, 0.82)):
@@ -451,7 +451,7 @@ def check_safe_zone(radii):
     return f"safe zones ok (worst {worst} {radii[worst]:.3f}, limit {MASK_RADIUS:.3f})"
 
 
-def tile(draw, base=FOREST, radius=0.2237):
+def tile(draw, base=INK, radius=0.2237):
     """A baked rounded-square tile: field plus mark, transparent corners."""
     mark = Mark(base=base, punch=base)
     mark.rounded((0, 0, S, S), S * radius, base)
@@ -465,7 +465,7 @@ def write_android_resources():
     drawable.mkdir(parents=True, exist_ok=True)
     mipmap.mkdir(parents=True, exist_ok=True)
 
-    # Foreground is the P alone: the forest field arrives from the adaptive
+    # Foreground is the P alone: the warm ink field arrives from the adaptive
     # icon's <background>, so nothing is double-drawn or cropped by a mask.
     papir_layer().save(drawable / "ic_launcher_foreground.png", optimize=True)
     papir_layer(tint=WHITE).save(drawable / "ic_launcher_monochrome.png", optimize=True)
@@ -506,11 +506,11 @@ def contact_sheet(path, columns=5, cell=236):
     pad, header = 26, 78
     width = columns * cell + pad * 2
     height = header + rows * (cell + 40) + pad
-    sheet = Image.new("RGB", (width, height), FOREST)
+    sheet = Image.new("RGB", (width, height), INK)
     draw = ImageDraw.Draw(sheet)
     draw.text((pad, 24), "Papir - Kindle share-sheet marks", fill=IVORY,
               font=ImageFont.load_default(size=27))
-    draw.text((pad, 54), "forest #123325 · ivory #F3EADB", fill=TAUPE,
+    draw.text((pad, 54), "warm ink #1F1B16 · ivory #F3EADB", fill=TAUPE,
               font=ImageFont.load_default(size=14))
 
     for index, (name, render) in enumerate(items):
@@ -547,10 +547,10 @@ def build_pack():
             mark.render(size).save(folder / f"kindle-{kind}-{size}.png", optimize=True)
         cut_out = glyph(kind)
         cut_out.render(1024).save(folder / f"kindle-{kind}-glyph-1024.png", optimize=True)
-        on_forest = Image.new("RGB", (1024, 1024), FOREST)
+        on_ink = Image.new("RGB", (1024, 1024), INK)
         layer = cut_out.render(1024)
-        on_forest.paste(layer, (0, 0), layer)
-        on_forest.save(folder / f"kindle-{kind}-on-forest-1024.png", optimize=True)
+        on_ink.paste(layer, (0, 0), layer)
+        on_ink.save(folder / f"kindle-{kind}-on-ink-1024.png", optimize=True)
 
     android = staging / "android"
     android.mkdir()
@@ -600,7 +600,7 @@ def build_pack():
               kindle-generic      plain slab for anything unmatched
 
             Each Kindle folder holds the transparent glyph (…-glyph-1024.png),
-            the same glyph on the forest field (…-on-forest-1024.png) and baked
+            the same glyph on the warm ink field (…-on-ink-1024.png) and baked
             tiles at 16, 32, 64, 128, 256, 512 and 1024 px. The papir folder stops
             at 432 px: that is the resolution of the launcher glyph, and
             nothing here upsamples it. `android/` holds what the app
@@ -613,7 +613,7 @@ def build_pack():
             paperwhite, touch, basic — first hit wins, and anything else gets the
             generic slab. "All devices", or no choice yet, shows the papir mark.
 
-            Palette: forest #123325, ivory #F3EADB, with sage #7FA88E, mist
+            Palette: warm ink #1F1B16, ivory #F3EADB, with clay #BA8562, mist
             #BFD6D0 and taupe #C9BFA9 only on the Colorsoft cover. No Amazon
             trade dress, no wordmark.
             """
@@ -630,7 +630,7 @@ def build_pack():
 
 def previews():
     contact_sheet(Path("/tmp/papir-marks.png"))
-    row = Image.new("RGB", (len(KINDS) * 74 + 60, 150), FOREST)
+    row = Image.new("RGB", (len(KINDS) * 74 + 60, 150), INK)
     draw = ImageDraw.Draw(row)
     for index, kind in enumerate(KINDS):
         icon = tile(PAINTERS[kind]).render(48)

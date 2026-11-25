@@ -31,9 +31,9 @@ document on its way to the reader.
 | Warm terracotta | `#D96B43` | Reserved accent; never on the mark |
 
 The Mac and Android interfaces use warm ink `#1F1B16` on parchment `#F3EADB`
-with rules at `#D8CDB9`; no green appears in Mac app chrome or the Mac app
-icon. The archived v2 suite keeps its forest edition, and the Android launcher
-art still uses that field until it is retoned.
+with rules at `#D8CDB9`; no green appears in Mac or Android app chrome,
+the Mac app icon, or the Android launcher/share-sheet icons. The archived
+v2 suite keeps its original forest edition for reference only.
 
 Rules: never place cream text on cream; the icon field is not retoned per
 season or variant (the ink master is a one-off rebrand of the suite's forest

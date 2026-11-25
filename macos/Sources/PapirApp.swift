@@ -711,6 +711,51 @@ struct PapirSendButtonStyle: ButtonStyle {
     }
 }
 
+struct PapirGhostButtonStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
+    var destructive: Bool = false
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.subheadline.weight(.medium))
+            .foregroundStyle(destructive ? PapirTheme.error : PapirTheme.ink)
+            .padding(.vertical, 6)
+            .padding(.horizontal, 12)
+            .background(
+                PapirTheme.paper.opacity(configuration.isPressed ? 0.9 : 0.55),
+                in: RoundedRectangle(cornerRadius: 7)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 7)
+                    .strokeBorder((destructive ? PapirTheme.error.opacity(0.4) : PapirTheme.rule), lineWidth: 1)
+            )
+            .opacity(isEnabled ? 1 : 0.55)
+    }
+}
+
+private struct PapirCard<Content: View>: View {
+    @ViewBuilder let content: () -> Content
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            content()
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(PapirTheme.raised, in: RoundedRectangle(cornerRadius: 10))
+        .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(PapirTheme.rule, lineWidth: 1))
+    }
+}
+
+private struct PapirSectionLabel: View {
+    let title: String
+    init(_ title: String) { self.title = title }
+    var body: some View {
+        Text(title.uppercased())
+            .font(.system(size: 11, weight: .semibold))
+            .tracking(1.1)
+            .foregroundStyle(PapirTheme.inkDim)
+    }
+}
+
 struct ContentView: View {
     @EnvironmentObject var sender: Sender
     @State private var hovering = false
@@ -974,20 +1019,28 @@ struct SignInView: View {
             if sender.awaitingRedirect {
                 Text("Finish signing in").font(.headline)
                 Text("After signing in with Amazon, copy the final address from your browser and paste it here. A bare authorization code also works.")
-                    .font(.subheadline).fixedSize(horizontal: false, vertical: true)
+                    .font(.subheadline).foregroundStyle(PapirTheme.inkDim)
+                    .fixedSize(horizontal: false, vertical: true)
                 SecureField("Final browser URL or code", text: $sender.redirect).textFieldStyle(.roundedBorder)
-                HStack {
+                HStack(spacing: 8) {
                     Button("Connect Kindle") { Task { await sender.finishSignIn() } }
+                        .buttonStyle(PapirSendButtonStyle())
                         .disabled(sender.redirect.isEmpty || sender.authBusy)
                     Button("Open Browser", action: sender.reopenBrowser)
-                    Button("Cancel", action: sender.cancelSignIn).disabled(sender.authBusy)
+                        .buttonStyle(PapirGhostButtonStyle())
+                    Button("Cancel", action: sender.cancelSignIn)
+                        .buttonStyle(PapirGhostButtonStyle())
+                        .disabled(sender.authBusy)
                 }
             } else {
                 Text("Connect your Kindle account").font(.headline)
-                Text("Sign in in your browser. No Python or Terminal setup needed.").font(.subheadline)
-                Button("Sign in with Amazon") { Task { await sender.beginSignIn() } }.disabled(sender.authBusy)
+                Text("Sign in in your browser. No Python or Terminal setup needed.")
+                    .font(.subheadline).foregroundStyle(PapirTheme.inkDim)
+                Button("Sign in with Amazon") { Task { await sender.beginSignIn() } }
+                    .buttonStyle(PapirSendButtonStyle())
+                    .disabled(sender.authBusy)
             }
-            if sender.authBusy { ProgressView().controlSize(.small) }
+            if sender.authBusy { ProgressView().controlSize(.small).tint(PapirTheme.ink) }
             if !sender.authError.isEmpty { Text(sender.authError).font(.caption).foregroundStyle(PapirTheme.error).textSelection(.enabled) }
         }
     }
@@ -1001,6 +1054,7 @@ struct PreferencesView: View {
         ScrollView { content }
             .frame(width: 460, height: 560)
             .foregroundStyle(ink)
+            .background(PapirTheme.paper.ignoresSafeArea())
             .textFieldStyle(.roundedBorder)
             .confirmationDialog("Sign out of Papir? This also signs out the CLI on this Mac.", isPresented: $confirmSignOut) {
                 Button("Sign Out", role: .destructive) { Task { await sender.signOut() } }
@@ -1009,57 +1063,79 @@ struct PreferencesView: View {
 
     /// Split out so the pane can be rendered on its own in tests.
     var content: some View {
-            VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 18) {
+            HStack(spacing: 8) {
+                PapirArt.plane
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 22, height: 18)
+                    .accessibilityHidden(true)
                 Text("settings")
                     .font(.system(size: 22, weight: .semibold, design: .serif))
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("Browser").font(.headline)
+            }
+            .padding(.bottom, 2)
+
+            VStack(alignment: .leading, spacing: 8) {
+                PapirSectionLabel("Browser")
+                PapirCard {
                     Toggle("Accept papir:// links", isOn: Binding(
                         get: { sender.intakeEnabled },
                         set: { sender.setIntakeEnabled($0) }
                     )).tint(ink)
                     Text("Off by default. Lets a browser, Shortcut or script hand Papir a document to review before sending.")
-                        .font(.caption).foregroundStyle(ink.opacity(0.72))
+                        .font(.caption).foregroundStyle(PapirTheme.inkDim)
                         .fixedSize(horizontal: false, vertical: true)
                     if sender.intakeEnabled {
-                        VStack(alignment: .leading, spacing: 6) {
+                        Rectangle().fill(PapirTheme.rule).frame(height: 1)
+                        VStack(alignment: .leading, spacing: 8) {
                             HStack(spacing: 8) {
                                 Text(sender.intakeEndpoint)
                                     .font(.system(.caption, design: .monospaced))
                                     .textSelection(.enabled)
                                 Text(sender.intakeRunning ? "listening" : "not listening")
-                                    .font(.caption2)
-                                    .foregroundStyle(ink.opacity(0.6))
+                                    .font(.caption2.weight(.medium))
+                                    .foregroundStyle(sender.intakeRunning ? ink : PapirTheme.inkDim)
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 2)
+                                    .background(PapirTheme.paper, in: Capsule())
                                 Spacer()
                                 Button("Connect Browser") { sender.connectBrowser() }
-                                    .buttonStyle(.plain).font(.caption)
+                                    .buttonStyle(PapirGhostButtonStyle())
                             }
                             Text(sender.intakeToken)
                                 .font(.system(.caption2, design: .monospaced))
-                                .foregroundStyle(ink.opacity(0.72))
+                                .foregroundStyle(PapirTheme.inkDim)
                                 .textSelection(.enabled)
                                 .lineLimit(2)
                                 .fixedSize(horizontal: false, vertical: true)
-                        Text("Click Connect Browser, then confirm in the tab that opens.")
-                            .font(.caption2).foregroundStyle(ink.opacity(0.55))
+                                .padding(8)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background(PapirTheme.paper, in: RoundedRectangle(cornerRadius: 6))
+                            Text("Click Connect Browser, then confirm in the tab that opens.")
+                                .font(.caption2).foregroundStyle(PapirTheme.inkDim)
                         }
-                        .padding(.top, 2)
                     }
                 }
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+                PapirSectionLabel("Kindle & Defaults")
                 if sender.showsAccountSettings {
-                    VStack(alignment: .leading, spacing: 12) {
+                    PapirCard {
                         HStack {
-                            Text("Account").foregroundStyle(ink.opacity(0.72))
+                            Text("Account").foregroundStyle(PapirTheme.inkDim)
                             Spacer()
                             Text(sender.accountName.isEmpty ? "Connected" : sender.accountName)
+                                .fontWeight(.medium)
                                 .lineLimit(1).truncationMode(.tail)
                         }.font(.subheadline)
+                        Rectangle().fill(PapirTheme.rule).frame(height: 1)
                         VStack(alignment: .leading, spacing: 5) {
-                            Text("Default author").font(.caption).foregroundStyle(ink.opacity(0.72))
+                            Text("Default author").font(.caption).foregroundStyle(PapirTheme.inkDim)
                             TextField("Your name", text: $sender.defaultAuthor)
                         }
                         VStack(alignment: .leading, spacing: 5) {
-                            Text("Default destination").font(.caption).foregroundStyle(ink.opacity(0.72))
+                            Text("Default destination").font(.caption).foregroundStyle(PapirTheme.inkDim)
                             Picker("", selection: $sender.defaultDestination) {
                                 Text("All devices").tag("all")
                                 Text("Kindle library only").tag("library")
@@ -1069,46 +1145,66 @@ struct PreferencesView: View {
                                 }
                             }.labelsHidden().frame(maxWidth: .infinity, alignment: .leading)
                         }
-                        HStack {
+                        HStack(spacing: 8) {
                             Button("Save Defaults") { Task { await sender.saveDefaults() } }
-                                .buttonStyle(.plain).fontWeight(.semibold)
+                                .buttonStyle(PapirSendButtonStyle())
                             Button("Refresh Devices") { Task { await sender.refreshDevices() } }
-                                .buttonStyle(.plain).foregroundStyle(ink.opacity(0.72))
+                                .buttonStyle(PapirGhostButtonStyle())
+                            Spacer()
+                            Button("Sign Out…") { confirmSignOut = true }
+                                .buttonStyle(PapirGhostButtonStyle(destructive: true))
                         }.disabled(sender.checkingAccount || sender.authBusy || sender.busy)
-                        Text("These defaults are shared with the Python CLI.").font(.caption).foregroundStyle(ink.opacity(0.72))
-                        Button("Sign Out…") { confirmSignOut = true }
-                            .buttonStyle(.plain)
-                            .foregroundStyle(PapirTheme.error)
-                            .disabled(sender.checkingAccount || sender.busy || sender.authBusy)
+                        Text("These defaults are shared with the Python CLI.")
+                            .font(.caption).foregroundStyle(PapirTheme.inkDim)
                     }
                 } else if sender.checkingAccount {
-                    EmptyView()
-                } else { SignInView().environmentObject(sender) }
-                if sender.signedIn && !sender.authError.isEmpty {
-                    Text(sender.authError).foregroundStyle(PapirTheme.error).font(.caption).textSelection(.enabled)
+                    PapirCard {
+                        HStack(spacing: 8) {
+                            ProgressView().controlSize(.small).tint(ink)
+                            Text("Checking Kindle account…").font(.subheadline).foregroundStyle(PapirTheme.inkDim)
+                        }
+                    }
+                } else {
+                    PapirCard {
+                        SignInView().environmentObject(sender)
+                    }
                 }
-                VStack(alignment: .leading, spacing: 10) {
+            }
+
+            if sender.signedIn && !sender.authError.isEmpty {
+                Text(sender.authError).foregroundStyle(PapirTheme.error).font(.caption).textSelection(.enabled)
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+                PapirSectionLabel("Engine")
+                PapirCard {
                     Text(sender.usesBundledEngine ? "Python engine included · No separate installation required" : "Using an external engine")
-                        .font(.caption).foregroundStyle(ink.opacity(0.72))
+                        .font(.caption).foregroundStyle(PapirTheme.inkDim)
                     DisclosureGroup("Advanced") {
                         VStack(alignment: .leading, spacing: 8) {
-                            Text(sender.executable).font(.caption).textSelection(.enabled)
+                            Text(sender.executable).font(.system(.caption, design: .monospaced))
+                                .foregroundStyle(PapirTheme.inkDim)
+                                .textSelection(.enabled)
                                 .fixedSize(horizontal: false, vertical: true)
-                            HStack {
+                            HStack(spacing: 8) {
                                 Button("Choose external engine…", action: sender.chooseCLI)
+                                    .buttonStyle(PapirGhostButtonStyle())
                                 Button("Use bundled engine") { sender.executable = sender.bundledExecutable; Task { await sender.bootstrap() } }
+                                    .buttonStyle(PapirGhostButtonStyle())
                             }.disabled(sender.checkingAccount || sender.busy || sender.authBusy)
                             TextField("Destination override for this session", text: $sender.target)
-                            Text("Leave empty to use your saved default.").font(.caption).foregroundStyle(ink.opacity(0.72))
-                        }.padding(.top, 4)
+                            Text("Leave empty to use your saved default.").font(.caption).foregroundStyle(PapirTheme.inkDim)
+                        }.padding(.top, 6)
                     }.tint(ink)
                 }
-                Text("Papir \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "")")
-                    .font(.caption2).foregroundStyle(ink.opacity(0.4))
-                    .padding(.top, 4)
             }
-            .padding(24)
-            .frame(maxWidth: .infinity, alignment: .topLeading)
+
+            Text("Papir \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "")")
+                .font(.caption2).foregroundStyle(PapirTheme.inkDim.opacity(0.65))
+                .padding(.top, 2)
+        }
+        .padding(24)
+        .frame(maxWidth: .infinity, alignment: .topLeading)
     }
 }
 
@@ -1120,6 +1216,8 @@ struct AboutView: View {
         VStack(spacing: 16) {
             if let path = Bundle.main.path(forResource: "Papir", ofType: "icns"), let icon = NSImage(contentsOfFile: path) {
                 Image(nsImage: icon).resizable().scaledToFit().frame(width: 80, height: 80)
+                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                    .shadow(color: PapirTheme.ink.opacity(0.18), radius: 6, y: 2)
                     .accessibilityLabel("Papir app icon")
             }
             VStack(spacing: 4) {

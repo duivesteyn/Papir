@@ -5,6 +5,6 @@
     <color name="papir_ink">#1F1B16</color>
     <color name="papir_ink_dim">#6B6051</color>
     <color name="papir_rule">#D8CDB9</color>
-    <!-- Launcher art keeps its forest field; the app UI is ink on parchment. -->
-    <color name="ic_launcher_background">#123325</color>
+    <!-- Launcher and share-sheet marks use the warm ink field to match the Mac icon. -->
+    <color name="ic_launcher_background">#1F1B16</color>
 </resources>
