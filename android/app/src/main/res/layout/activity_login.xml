@@ -2,7 +2,7 @@
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/papir_forest">
+    android:background="@color/papir_paper">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -25,7 +25,7 @@
                 android:layout_weight="1"
                 android:fontFamily="sans-serif-medium"
                 android:text="@string/sign_in_title"
-                android:textColor="@color/papir_ivory"
+                android:textColor="@color/papir_ink"
                 android:textSize="17sp" />
 
             <Button
@@ -47,7 +47,7 @@
                 android:id="@+id/webView"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:background="@color/papir_forest"
+                android:background="@color/papir_paper"
                 android:visibility="gone" />
 
             <!-- Shown while the sign-in happens in the system browser. -->
@@ -55,7 +55,7 @@
                 android:id="@+id/awaitPanel"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:background="@color/papir_forest"
+                android:background="@color/papir_paper"
                 android:fillViewport="true"
                 android:scrollbars="none"
                 android:visibility="gone">
@@ -75,7 +75,7 @@
                         android:layout_height="wrap_content"
                         android:fontFamily="serif"
                         android:text="@string/login_browser_title"
-                        android:textColor="@color/papir_ivory"
+                        android:textColor="@color/papir_ink"
                         android:textSize="24sp" />
 
                     <TextView
@@ -99,7 +99,7 @@
                 android:id="@+id/workingOverlay"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:background="@color/papir_forest"
+                android:background="@color/papir_paper"
                 android:gravity="center"
                 android:orientation="vertical"
                 android:visibility="gone">
@@ -107,14 +107,14 @@
                 <ProgressBar
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:indeterminateTint="@color/papir_ivory" />
+                    android:indeterminateTint="@color/papir_ink" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="14dp"
                     android:text="@string/login_working"
-                    android:textColor="@color/papir_ivory"
+                    android:textColor="@color/papir_ink"
                     android:textSize="14sp" />
             </LinearLayout>
         </FrameLayout>

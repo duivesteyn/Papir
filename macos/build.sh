@@ -24,6 +24,16 @@ fi
 cp "$PAPIR_MAC_ROOT/build/engine-dist/papir-engine" "$PAPIR_APP/Contents/Helpers/papir-engine"
 cp "$PAPIR_MAC_ROOT/Info.plist" "$PAPIR_APP/Contents/Info.plist"
 cp "$PAPIR_PROJECT_ROOT/art/Iconi/Papir.icns" "$PAPIR_APP/Contents/Resources/Papir.icns"
+if xcrun --find actool >/dev/null 2>&1; then
+    ACTOOL_ASSETS="$PAPIR_MAC_ROOT/build/Assets.xcassets"
+    rm -rf "$ACTOOL_ASSETS"
+    mkdir -p "$ACTOOL_ASSETS"
+    cp -R "$PAPIR_PROJECT_ROOT/art/Iconi/AppIcon.appiconset" "$ACTOOL_ASSETS/AppIcon.appiconset"
+    xcrun actool "$ACTOOL_ASSETS" --compile "$PAPIR_APP/Contents/Resources" \
+        --app-icon AppIcon --output-partial-info-plist "$PAPIR_MAC_ROOT/build/AssetCatalog-Info.plist" \
+        --platform macosx --minimum-deployment-target 14.0 >/dev/null
+fi
+cp "$PAPIR_PROJECT_ROOT/art/Iconi/Papir-Header-Mark.png" "$PAPIR_APP/Contents/Resources/Papir-Header-Mark.png"
 cp "$PAPIR_PROJECT_ROOT/LICENSE" "$PAPIR_APP/Contents/Resources/LICENSE.txt"
 "$PAPIR_BUILD_PYTHON" "$PAPIR_MAC_ROOT/collect-licenses.py" "$PAPIR_APP/Contents/Resources/ThirdPartyLicenses.txt"
 codesign --force --deep --sign - "$PAPIR_APP"

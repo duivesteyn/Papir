@@ -173,8 +173,8 @@ class MainActivity : Activity() {
         row.id = View.generateViewId()
         row.text = label
         row.textSize = 15f
-        row.setTextColor(getColor(R.color.papir_ivory))
-        row.buttonTintList = ColorStateList.valueOf(getColor(R.color.papir_ivory))
+        row.setTextColor(getColor(R.color.papir_ink))
+        row.buttonTintList = ColorStateList.valueOf(getColor(R.color.papir_ink))
         row.contentDescription = serial ?: getString(R.string.all_devices_hint)
         val padding = dp(8)
         row.setPadding(padding, padding, padding, padding)

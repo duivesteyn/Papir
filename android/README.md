@@ -7,8 +7,11 @@ way to your Kindle. No email, no account server, no second app to switch to.
   <img src="../_screenshots/Papir-android-share-sheet.png" width="320" alt="Android share sheet listing Papir beside Bluetooth and Print">
   <img src="../_screenshots/Papir-android-sent.png" width="320" alt="Papir's confirmation card reading Sent to Kindle with the SKU">
   <img src="../_screenshots/Papir-android-signin.png" width="320" alt="Papir's browser sign-in screen, waiting for Amazon to return">
-  <img src="../_screenshots/Papir-android-setup.png" width="320" alt="Papir's forest-green setup screen with a Sign in with Amazon button">
+  <img src="../_screenshots/Papir-android-setup.png" width="320" alt="Papir's setup screen with a Sign in with Amazon button">
 </p>
+
+> The app screenshots above were captured before the ink-on-parchment retheme
+> and will be refreshed on the next device pass; the share-sheet flow is unchanged.
 
 The APK is a native Kotlin port of the same private Send-to-Kindle protocol the
 CLI and Mac app use. One tap starts the upload; a card reports the SKU, or
@@ -169,12 +172,11 @@ no drawing tools:
 python3 android/tools/make-icons.py    # res/ resources + kindle_app_icon_pack.zip
 ```
 
-Two different jobs. The **app icon** is the launcher glyph that already shipped,
-kept in `art/Iconi/Papir-launcher-glyph-432.png` — same matte, same shading — and
-only fitted to 0.315 of the 108dp canvas. Nothing is redrawn, re-keyed or
-retinted; that is inside the 66dp safe circle, which is all that was wrong: the
-same glyph used to be scaled to 70% of the canvas, so launchers cropped the bowl
-and the stem.
+Two different jobs. The **app icon** is the paper-plane launcher glyph kept in
+`art/Iconi/Papir-launcher-glyph-432.png` and only fitted to 0.315 of the 108dp
+canvas. Nothing is redrawn, re-keyed or retinted; that is inside the 66dp safe
+circle, which is all that matters: the earlier glyph was scaled to 70% of the
+canvas, so launchers cropped it.
 
 The **share-sheet marks** are drawn from scratch, one silhouette per Kindle
 family: Scribe (with its pen), Paperwhite (wide chin and home button), Basic,
@@ -215,7 +217,7 @@ android/
     share/       sharesheet entry, payload parsing, upload service,
                  ShareTargets (alias switching)
     ui/          setup/settings and the browser sign-in hand-off
-  app/src/main/res/     forest/ivory surfaces, adaptive icon, share-sheet marks,
+  app/src/main/res/     paper/ink surfaces, adaptive icon, share-sheet marks,
                         settings previews, notification glyph
   app/src/test/         JVM tests (signer parity, PKCE, titles, name matching,
                         manifest/alias integrity)

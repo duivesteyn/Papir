@@ -67,13 +67,15 @@ It does not publish anything or change system security settings.
   shared defaults, and sign-out. Auth URLs and verifiers are sent over stdin,
   never command-line arguments. Bridge errors do not expose server auth bodies.
 - `../art/Iconi/Papir.icns`: canonical retained artwork copied into the bundle.
+- `../art/Iconi/Papir-Header-Mark.png`: ink-silhouette plane copied into the
+  bundle for the window header beside the serif `papir` wordmark.
 - `build/Papir.app/Contents/Helpers/papir-engine`: bundled executable.
 
 The GUI sends argument arrays without a shell. Credentials live in the existing
 CLI file, not the distributable app. Settings can select an external compatible
 engine for development; the bundle is used again on next launch. Title override
 is available for one document; author applies to the selected batch. Failed files
-remain for retry; successful batches show an animated green tick and Success confirmation.
+remain for retry; successful batches show the animated plane-and-tick success badge.
 Send More Documents… clears the finished batch plus its title, author and convert
 options, then returns to the drop zone so another batch can be prepared.
 Only errors from the current batch are displayed; there is no recent sends list. Account display details and saved author/destination defaults are cached for

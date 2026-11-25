@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="papir_forest">#123325</color>
-    <color name="papir_forest_deep">#0E281D</color>
-    <color name="papir_ivory">#F3EADB</color>
-    <color name="papir_ivory_dim">#C9BFA9</color>
-    <color name="papir_line">#2C4C3A</color>
-    <color name="ic_launcher_background">#123325</color>
+    <color name="papir_paper">#F3EADB</color>
+    <color name="papir_paper_raised">#FBF6EC</color>
+    <color name="papir_ink">#1F1B16</color>
+    <color name="papir_ink_dim">#6B6051</color>
+    <color name="papir_rule">#D8CDB9</color>
+    <!-- Launcher and share-sheet marks use the warm ink field to match the Mac icon. -->
+    <color name="ic_launcher_background">#1F1B16</color>
 </resources>
