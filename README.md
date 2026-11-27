@@ -52,11 +52,11 @@ The release is ad-hoc signed and **not notarized**, so macOS may ask you to appr
 
 ### Android
 
-1. Download [papir-0.1.2.apk](https://github.com/duivesteyn/Papir/releases/download/android-0.1.2/papir-0.1.2.apk) on the phone and allow Chrome to install it — or build it from `android/` (`bash android/tools/build.sh`) and use `adb install -r android/build/papir-0.1.2.apk`.
+1. Download [papir-1.2.0.apk](https://github.com/duivesteyn/Papir/releases/download/android-1.2.0/papir-1.2.0.apk) on the phone and allow Chrome to install it — or build it from `android/` (`bash android/tools/build.sh`) and use `adb install -r android/build/papir-1.2.0.apk`.
 2. Open Papir, sign in with Amazon (it opens in your browser), and choose your default Kindle.
 3. Share any PDF → **Papir**. A small card confirms the send (and the SKU); failures offer Retry.
 
-Android 8.0+. 0.1.2 is a sideload build signed with a local development key — no Play Store listing yet, and no Gradle. Details in [Android notes](android/README.md).
+Android 8.0+. 1.2.0 is a sideload build signed with a local development key — no Play Store listing yet, and no Gradle. Details in [Android notes](android/README.md).
 
 ### Command line
 
@@ -144,6 +144,7 @@ Build environments and generated releases stay local and are ignored by Git. Dow
 
 ## Changelog
 
+- Android 1.2.0 2026-11-27 Versioned release (`versionCode` 10) bundling the ink-on-parchment UI, updated v2 paper-plane artwork, and Colorsoft share-target icon fixes.
 - macOS 2026-11-22 Auth checks run silently as soon as a document is staged; Send no longer announces a check and errors surface only when one blocks a send.
 - macOS 2026-11-22 Mac app icon retoned from forest green to warm ink; the paper-plane artwork is unchanged.
 - Mac/Android/web 2026-11-22 Ink-on-parchment interface: greens removed from window, settings, controls, intake page, extension options and Android surfaces.

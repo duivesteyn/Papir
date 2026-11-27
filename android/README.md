@@ -17,7 +17,7 @@ The APK is a native Kotlin port of the same private Send-to-Kindle protocol the
 CLI and Mac app use. One tap starts the upload; a card reports the SKU, or
 offers **Retry**.
 
-**Status:** 0.1.2 preview, sideload only. Android 8.0 (API 26) and later.
+**Status:** 1.2.0 preview, sideload only. Android 8.0 (API 26) and later.
 Checked on an Android 14 emulator: share-sheet entry, PDF intake, the share card
 in its sending, sent, failed and sign-in states, foreground upload, and the
 browser sign-in hand-off (including routing a shared sign-in page back into the
@@ -48,7 +48,7 @@ app). A live Amazon account and a real Kindle have not been used yet.
 
 On the phone, open the release asset and let Chrome download it:
 
-    https://github.com/duivesteyn/Papir/releases/download/android-0.1.2/papir-0.1.2.apk
+    https://github.com/duivesteyn/Papir/releases/download/android-1.2.0/papir-1.2.0.apk
 
 Chrome asks once for **Install unknown apps**; allow it and the package
 installer opens the APK. Downloading and tapping in the browser works. Opening
@@ -64,7 +64,7 @@ account go with it.
 Or build it (below) and install over USB:
 
 ```sh
-adb install -r android/build/papir-0.1.2.apk
+adb install -r android/build/papir-1.2.0.apk
 ```
 
 Open Papir once, sign in, pick your Kindle. On Android 13+ the system also asks
@@ -127,7 +127,7 @@ for the fixture generator). Everything else is fetched into `.tooling/`
 
 ```sh
 bash android/tools/bootstrap.sh   # one time: Android SDK + Kotlin compiler
-bash android/tools/build.sh       # -> android/build/papir-0.1.2.apk
+bash android/tools/build.sh       # -> android/build/papir-1.2.0.apk
 bash android/tools/test.sh        # JVM tests
 ```
 
@@ -230,7 +230,7 @@ android/
 - Device list: cache it per account and refresh only on request, rather than
   each time the app opens.
 - Import credentials from the Mac app (QR) for people who already signed in there.
-- Play Store listing; 0.1.2 is a sideload build.
+- Play Store listing; 1.2.0 is a sideload build.
 
 ## Known limits
 
